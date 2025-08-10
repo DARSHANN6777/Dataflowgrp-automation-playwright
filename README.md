@@ -36,10 +36,30 @@ It is designed to handle dynamic fields, timing issues, OTP verification, and fo
 ├── package.json         # Project dependencies & scripts
 └── README.md            # Project documentation
 
+
+---
+
 ## ⚙️ Installation & Setup
 
 ### 1️⃣ Clone the Repository
-```bash
 git clone https://github.com/DARSHANN6777/proj_new_auto.git
 cd proj_new_auto
+2️⃣ Install Dependencies
+npm install
+3️⃣ Install Playwright Browsers
+npx playwright install
+4️⃣ Run Tests
+npx playwright test
+5️⃣ Debug in UI Mode
+npx playwright test --ui
+6️⃣ View Reports
+npx playwright show-report
+📸 Demo
+Add screenshots or GIFs showing the automation in action.
+
+📄 License
+This project is licensed under the MIT License.
+
+👤 Author: DARSHANN6777
+
 
