@@ -37,3 +37,9 @@ It is designed to handle dynamic fields, timing issues, OTP verification, and fo
 └── README.md            # Project documentation
 
 ## ⚙️ Installation & Setup
+
+### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/DARSHANN6777/proj_new_auto.git
+cd proj_new_auto
+
