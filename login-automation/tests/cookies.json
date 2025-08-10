@@ -1,0 +1,56 @@
+{
+  "email": "ndarshan+story47@dataflowgroup.com",
+  "cookies": [
+    {
+      "name": "portalLang",
+      "value": "en",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "clientId",
+      "value": "",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1786339520,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "coBrandSubDomain",
+      "value": "",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1786339520,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "at",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..ayWTjPWrK5ODMuPwqDyLtw.1KZpUSMDC1x45JPWK_VGQw-fp71d9DlP6LoIPoLJZmJhZaWhKrAQVIgXYYnoBhtOCudJ88F2NDDfTHpFoyhW7ecOqZaa-hFXqAtSnXv9yEhJgcpfdPphfneLBgdMQgVbvYkCwskcev4hd0ER1awftScoyekSZwQ-q9uY8ql5TJIZF87qvb66CNqOB6WAohhZb9WoNmBKToAP-MZuwGXNgBFzdj4qhEb8dQSBx3FH75Gm-NZ_MJhYywAp3c1WUr8O6Vu_woI3qSx1Ch2xqmtmcVAUcI46CkuQ1C9CoMAv4-bI2rXaZgBXf3yxBuPLMh8qx8__1gDtXhM9gJyu6oN-yIe3ucLpMxSLtvBy-hWMZAJ9YysT6Z57c-Hg7LBmsv3kRYh9uJk-lIeOS6fLXWxmtGSmAteiuz2yWvBSvYL9ElA.cCNFwgh09bOpM4pO9mRVBjtwwMC3f1hMD6JhQN-knuM",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1754805362.426876,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "rt",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..LagQn87ClwkRehEvkxcUFQ._XR_RK0pIuD1VDrCMEOHXBhhsMMFIFfxoy2PaWAIAsvdj7-87SlqpZSNZKJa24_5aWKBHhATLR2zfuZHYvmoPfnECpMKnlDfZ2MjjRZlf-CFALaOjw4ouQd_6nlxuUURbd1053uGaSMuygmB3vMBFWOsSvHwtxUgcQ1ODuAWgqwI2GDg6exfY_fObk82aEKww-GhjgWvDYbgsIz8UA2abxuov4YOFv7IBQLr9iSqWG4.SthZzWuNpZJoFmgmA2A7lcUmpS-3RStxIzKaHCxrFI4",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1770355562.427046,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "timestamp": 1754803564604
+}

@@ -1,0 +1,77 @@
+{
+  "cookies": [
+    {
+      "name": "portalLang",
+      "value": "en",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "clientId",
+      "value": "",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1786294000,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "coBrandSubDomain",
+      "value": "",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1786294000,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "at",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..tAvP88ppBSmr5SBd8L7Kmg.RzStrCygAmFO56iuKjkmj8QtzjxT4YvAnEggDitkkHnYMysOaDHSpmGfLZnyQCuNQdj5-8Ji8IQifwLYuqelt4ZEGqgAeQL0qJhznlY7K8ZuXL85JLVaJ3p9S2c3BqXJgzGa95AGRLdG1FtV_cQqIDA9-AiRdaqffs60J6cQhJ43I5QOYOZrcQQc5Mzgcp62TiUoUWJtXy108tr8PMZxurjpL_2h8rWskz27csqGDffTuAZvSR_O-QtpMVrh8UXbTVk-E9txZaNA9H2y_ylfNDAEQeXip91PA0Jz8BqIlxRL8KAed5O18--TZWu_EfyMQGEQghwS7Wk9QdvX_kxTm_uexfI1k0nq1rfeaKHEnvxtTRrL_QhMqe78NTdqFUWmbg2qfcty63HHkA3uYXXN7EWhvzby2V72UZ6FSFT--hc.n_gYTd6sa9SpBTAJL9j7eBvTNT2kj6x-JnqYSISmI0o",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1754759889.417534,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "rt",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..jPOebNZj7VQxtnI7FCNXvg.NitkifDGXU1HKD0BVRCCa2hxFFis8pAhDt5JmXCNdXw6avJNFerFXyOWJW-w7H6A7G0RM4e31N8XRJ5JoRu98hoJrLVE_K0QaKd9jVJOi8zhTydn2cRsdn8wPZon6_hiHWZZcYtK5o_y8r66hR2mGQAlU-87IFIRLm7N5i8HhXDE90v1lPDQbZGVR1ajgtIVdRK23bqx5zBwfYXtIuNhd_3y4Uu_urXysDczWfmD8HM.rtquBDvBZAPKC0u1NDhwPKLwffL4z_bqrPw8iVFHPZ4",
+      "domain": "app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1770310089.417632,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://app.staging.dataflowgroup.com",
+      "localStorage": [
+        {
+          "name": "theme",
+          "value": "primary"
+        },
+        {
+          "name": "analytics_session_start_time",
+          "value": "1754757999965"
+        },
+        {
+          "name": "analytics_session_id",
+          "value": "f6b787b0-a408-4033-8057-dbe0a4e9095e"
+        },
+        {
+          "name": "analytics_last_event",
+          "value": "1754758091633"
+        }
+      ]
+    }
+  ]
+}
