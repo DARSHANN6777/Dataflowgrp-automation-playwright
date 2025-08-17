@@ -39,63 +39,556 @@ async function loadCookies(page: any) {
   return null;
 }
 
-// Improved dropdown selection function based on actual HTML structure
-async function selectDropdownByTestId(page: any, testId: string, optionText: string) {
-  console.log(`🔍 Selecting dropdown option "${optionText}" for testId: ${testId}`);
+// IMPROVED dropdown selection - using actual input element and waiting properly
+async function selectDropdownOption(page: any, testId: string, optionText: string) {
+  console.log(`🔍 Attempting to select "${optionText}" for ${testId}`);
   
   try {
-    // Method 1: Click the dropdown container by data-testid
-    const dropdownContainer = `[data-testid="${testId}-chipContainer"]`;
-    await page.waitForSelector(dropdownContainer, { timeout: 10000 });
-    await page.click(dropdownContainer);
-    console.log(`✅ Clicked dropdown container: ${dropdownContainer}`);
+    console.log(`🔄 Taking screenshot before attempting dropdown selection...`);
+    await page.screenshot({ path: `before-${testId}-selection.png` });
     
-    await page.waitForTimeout(1500); // Wait for dropdown to open
+    // Wait for page to be ready
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
     
-    // Click the option by its label
-    const optionSelector = `.dropdown-module_menuItemLabel__VJuGM:has-text("${optionText}")`;
-    await page.waitForSelector(optionSelector, { timeout: 5000 });
-    await page.click(optionSelector);
-    console.log(`✅ Selected option: "${optionText}"`);
+    // Method 1: Click directly on the input field using data-testid
+    console.log(`🔄 Method 1: Clicking dropdown input field using testId...`);
     
-    return true;
-  } catch (error) {
-    console.log(`❌ Method 1 failed: ${error.message}`);
+    let inputSelector = '';
+    if (testId === 'testSpeciality') {
+      inputSelector = '[data-testid="testSpeciality-dropdownInput"]';
+    } else if (testId === 'testSubSpeciality') {
+      // For second dropdown, wait for it to appear and be enabled
+      await page.waitForTimeout(3000);
+      inputSelector = '[data-testid="testSubSpeciality-dropdownInput"]';
+    }
     
+    // Wait for the input to be visible and enabled
+    await page.waitForSelector(inputSelector, { timeout: 10000 });
+    
+    // Check if element is actually clickable
+    const inputElement = page.locator(inputSelector);
+    await expect(inputElement).toBeVisible();
+    
+    // Click the input field to open dropdown
+    await inputElement.click();
+    console.log(`✅ Clicked dropdown input field: ${inputSelector}`);
+    
+    // Wait for dropdown options to appear
+    await page.waitForTimeout(3000);
+    await page.screenshot({ path: `after-${testId}-click.png` });
+    
+    // Method 2: Try multiple approaches to select the option
+    console.log(`🔄 Looking for option: ${optionText}`);
+    
+    // Strategy A: Direct text match
     try {
-      // Method 2: Try clicking the chip text area
-      const chipTextSelector = `[data-testid="${testId}-selectedOption"]`;
-      await page.click(chipTextSelector);
-      console.log(`✅ Clicked chip text: ${chipTextSelector}`);
-      
-      await page.waitForTimeout(1500);
-      
-      const optionSelector = `.dropdown-module_menuItemLabel__VJuGM:has-text("${optionText}")`;
-      await page.click(optionSelector);
-      console.log(`✅ Selected option: "${optionText}" (Method 2)`);
-      
+      await page.waitForSelector(`text="${optionText}"`, { timeout: 5000 });
+      await page.click(`text="${optionText}"`);
+      console.log(`✅ Selected option using direct text: ${optionText}`);
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: `after-${testId}-selection.png` });
       return true;
-    } catch (error2) {
-      console.log(`❌ Method 2 failed: ${error2.message}`);
-      
+    } catch (directTextError) {
+      console.log(`⚠️ Direct text click failed, trying other methods...`);
+    }
+    
+    // Strategy B: Look for dropdown menu items with various selectors
+    const optionSelectors = [
+      `[role="option"]:has-text("${optionText}")`,
+      `[class*="menuItem"]:has-text("${optionText}")`,
+      `[class*="dropdown"]:has-text("${optionText}")`,
+      `.dropdown-module_menuItemLabel__VJuGM:has-text("${optionText}")`,
+      `li:has-text("${optionText}")`,
+      `div[role="listbox"] div:has-text("${optionText}")`,
+      `ul li:has-text("${optionText}")`
+    ];
+    
+    let optionClicked = false;
+    for (const selector of optionSelectors) {
       try {
-        // Method 3: Force click approach
-        const dropdownContainer = `[data-testid="${testId}-chipContainer"]`;
-        await page.locator(dropdownContainer).click({ force: true });
-        console.log(`✅ Force clicked dropdown container`);
-        
-        await page.waitForTimeout(1500);
-        
-        const optionLocator = page.locator(`.dropdown-module_menuItemLabel__VJuGM`).filter({ hasText: optionText });
-        await optionLocator.click({ force: true });
-        console.log(`✅ Force selected option: "${optionText}"`);
-        
-        return true;
-      } catch (error3) {
-        console.log(`❌ All methods failed for dropdown ${testId}`);
-        throw error3;
+        const element = page.locator(selector);
+        if (await element.isVisible()) {
+          await element.click();
+          console.log(`✅ Successfully clicked option using selector: ${selector}`);
+          optionClicked = true;
+          break;
+        }
+      } catch (e) {
+        console.log(`⚠️ Selector ${selector} didn't work, trying next...`);
+        continue;
       }
     }
+    
+    // Strategy C: If no selector worked, try keyboard navigation
+    if (!optionClicked) {
+      console.log(`🔄 Trying keyboard navigation method...`);
+      try {
+        // Clear the input and type the option
+        await inputElement.click();
+        await page.keyboard.press('Control+A'); // Select all
+        await page.keyboard.type(optionText);
+        await page.waitForTimeout(1000);
+        await page.keyboard.press('Enter');
+        console.log(`✅ Selected option using keyboard navigation: ${optionText}`);
+        optionClicked = true;
+      } catch (keyboardError) {
+        console.log(`⚠️ Keyboard navigation failed: ${keyboardError.message}`);
+      }
+    }
+    
+    // Strategy D: If still not clicked, use manual intervention
+    if (!optionClicked) {
+      console.log(`❌ Could not click option automatically. Manual intervention required.`);
+      console.log(`👉 The dropdown should be open. Please manually click on "${optionText}" option, then press Resume`);
+      await page.pause();
+      optionClicked = true; // Assume user clicked it
+    }
+    
+    // Wait for selection to complete and form to update
+    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
+    await page.screenshot({ path: `after-${testId}-selection.png` });
+    
+    console.log(`✅ Dropdown selection completed for ${testId}`);
+    return true;
+    
+  } catch (error) {
+    console.log(`❌ Error in dropdown selection: ${error.message}`);
+    await page.screenshot({ path: `error-${testId}-selection.png` });
+    
+    // Show current page state for debugging
+    console.log(`🔍 Debug: Current URL: ${page.url()}`);
+    
+    // Check if dropdown inputs exist
+    try {
+      const allDropdowns = await page.locator('[data-testid*="-dropdownInput"]').count();
+      console.log(`🔍 Debug: Found ${allDropdowns} dropdown inputs on page`);
+      
+      if (allDropdowns > 0) {
+        const testIds = await page.locator('[data-testid*="-dropdownInput"]').all();
+        for (let i = 0; i < testIds.length; i++) {
+          const testIdValue = await testIds[i].getAttribute('data-testid');
+          console.log(`🔍 Debug: Dropdown ${i}: ${testIdValue}`);
+        }
+      }
+    } catch (debugError) {
+      console.log(`🔍 Debug logging failed: ${debugError.message}`);
+    }
+    
+    console.log(`🛑 MANUAL INTERVENTION REQUIRED:`);
+    console.log(`   Field: ${testId}`);
+    console.log(`   Option to select: ${optionText}`);
+    console.log(`   Please manually select the option and press Resume`);
+    
+    await page.pause();
+    return true;
+  }
+}
+
+// Legacy function for backward compatibility - updated to use new approach
+async function selectDropdownByTestId(page: any, testId: string, optionText: string) {
+  console.log(`🔍 Selecting dropdown option "${optionText}" for testId: ${testId}`);
+  return await selectDropdownOption(page, testId, optionText);
+}
+
+// Helper function to handle report transfer page
+async function handleReportTransferPage(page: any) {
+  console.log('📊 Starting report transfer page handling...');
+  
+  try {
+    // Wait for the report transfer page to load completely
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    // Take screenshot of the report transfer page
+    await page.screenshot({ path: 'report-transfer-page.png' });
+    
+    // Verify we're on the correct page
+    const currentUrl = page.url();
+    console.log(`📍 Current URL on report transfer page: ${currentUrl}`);
+    
+    // Check if the report transfer page is visible
+    const reportTransferTitle = await page.isVisible('text="Reuse your previous DataFlow report"');
+    if (reportTransferTitle) {
+      console.log('✅ Report transfer page loaded successfully');
+      
+      // Log the current selections visible on the page
+      const selections = [
+        await page.isVisible('text="Bahrain"') ? '🇧🇭 Bahrain' : '',
+        await page.isVisible('text="National Health Regulatory Authority"') ? '🏛️ NHRA' : '',
+        await page.isVisible('text="Foreign Education Recognition"') ? '🎓 Foreign Education Recognition' : '',
+        await page.isVisible('text="Fresh Graduates - Bahraini Nationals"') ? '👨‍🎓 Fresh Graduates - Bahraini Nationals' : ''
+      ].filter(Boolean);
+      
+      console.log('✅ Confirmed selections:', selections.join(', '));
+    } else {
+      console.log('⚠️ Report transfer page may not be fully loaded');
+    }
+    
+    // Check if there are existing reports shown
+    const hasExistingReports = await page.isVisible('text="Already have an existing Dataflow report?"');
+    if (hasExistingReports) {
+      console.log('ℹ️ Page shows option to find existing reports');
+    }
+    
+    // Check if the "Find Your Report" button is visible (optional action)
+    const findReportButton = await page.isVisible('button:has-text("Find Your Report")');
+    if (findReportButton) {
+      console.log('ℹ️ "Find Your Report" button is available but we will proceed with Continue');
+    }
+    
+    // Step 1: Look for and click the Continue button
+    console.log('🔍 Looking for and clicking the Continue button...');
+    
+    try {
+      // Wait for Continue button to be visible and enabled
+      await page.waitForSelector('button:has-text("Continue")', { timeout: 10000 });
+      
+      const continueButton = page.locator('button:has-text("Continue")');
+      const isEnabled = await continueButton.isEnabled();
+      const isVisible = await continueButton.isVisible();
+      
+      console.log(`🔍 Continue button - visible: ${isVisible}, enabled: ${isEnabled}`);
+      
+      if (isVisible && isEnabled) {
+        // Take screenshot before clicking
+        await page.screenshot({ path: 'before-continue-click-report-transfer.png' });
+        
+        await continueButton.click();
+        console.log('✅ Successfully clicked Continue button on report transfer page');
+        
+        // Wait for navigation to next page
+        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
+        
+        const newUrl = page.url();
+        console.log(`📍 After Continue click URL: ${newUrl}`);
+        await page.screenshot({ path: 'after-continue-click-report-transfer.png' });
+        
+        // Verify that we've moved to the next step
+        if (newUrl !== currentUrl) {
+          console.log('✅ Successfully navigated to next page after clicking Continue');
+          
+          // Check what type of page we landed on
+          const hasUploadSection = await page.isVisible('text="Upload", text="Choose File", text="Browse", input[type="file"]');
+          const hasPersonalInfo = await page.isVisible('text="Personal Information", text="Name", text="Date of Birth"');
+          const hasApplicationForm = await page.isVisible('text="Application Form", text="Submit", text="Review"');
+          
+          if (hasUploadSection) {
+            console.log('📁 Detected file upload section - moved to document upload page');
+          } else if (hasPersonalInfo) {
+            console.log('👤 Detected personal information section - moved to profile/details page');
+          } else if (hasApplicationForm) {
+            console.log('📋 Detected application form - moved to final application page');
+          } else {
+            console.log('📄 Moved to next page (type not immediately identified)');
+          }
+          
+        } else {
+          console.log('⚠️ URL didn\'t change - checking for other indicators of progress...');
+          
+          // Check if page content changed
+          await page.waitForTimeout(2000);
+          const pageChanged = !(await page.isVisible('text="Reuse your previous DataFlow report"'));
+          if (pageChanged) {
+            console.log('✅ Page content changed - navigation likely successful');
+          }
+        }
+        
+      } else {
+        console.log('⚠️ Continue button is not visible or enabled');
+        console.log('👉 Please manually verify the page state and click Continue if available, then press Resume');
+        await page.pause();
+      }
+      
+    } catch (continueError) {
+      console.log('❌ Could not find or click Continue button:', continueError.message);
+      await page.screenshot({ path: 'continue-button-error-report-transfer.png' });
+      
+      // Try alternative button selectors for this page
+      const buttonSelectors = [
+        'button[type="submit"]',
+        'input[type="submit"]',
+        'button:has-text("Next")',
+        'button:has-text("Proceed")',
+        'button:has-text("Submit")',
+        '.btn-primary',
+        '.continue-btn',
+        '[data-testid*="continue"]',
+        '[data-testid*="next"]'
+      ];
+      
+      let buttonClicked = false;
+      for (const buttonSelector of buttonSelectors) {
+        try {
+          console.log(`🔄 Trying alternative button selector: ${buttonSelector}`);
+          const altButton = page.locator(buttonSelector);
+          if (await altButton.isVisible() && await altButton.isEnabled()) {
+            await altButton.click();
+            console.log(`✅ Clicked button using alternative selector: ${buttonSelector}`);
+            buttonClicked = true;
+            break;
+          }
+        } catch (altError) {
+          continue;
+        }
+      }
+      
+      if (!buttonClicked) {
+        console.log('👉 Could not find Continue button automatically. Please manually click it, then press Resume');
+        await page.pause();
+      }
+    }
+    
+    console.log('🎉 Report transfer page handling completed successfully!');
+    
+  } catch (reportTransferError) {
+    console.log('❌ Error during report transfer page handling:', reportTransferError.message);
+    await page.screenshot({ path: 'report-transfer-error.png' });
+    
+    // Enhanced debug information
+    console.log('🔍 Debug: Current page state...');
+    console.log(`🔍 Debug: Current URL: ${page.url()}`);
+    console.log(`🔍 Debug: Page title: ${await page.title()}`);
+    
+    // Log available buttons for debugging
+    try {
+      const allButtons = await page.locator('button').allTextContents();
+      console.log('🔍 Debug: Available buttons:', allButtons);
+      
+      const allLinks = await page.locator('a').allTextContents();
+      console.log('🔍 Debug: Available links:', allLinks.slice(0, 10)); // Limit to first 10 to avoid spam
+      
+      // Check for specific elements on this page
+      const hasReportTitle = await page.isVisible('text="Reuse your previous DataFlow report"');
+      const hasContinueBtn = await page.isVisible('button:has-text("Continue")');
+      const hasFindBtn = await page.isVisible('button:has-text("Find Your Report")');
+      
+      console.log(`🔍 Debug: Report title visible: ${hasReportTitle}`);
+      console.log(`🔍 Debug: Continue button visible: ${hasContinueBtn}`);
+      console.log(`🔍 Debug: Find Report button visible: ${hasFindBtn}`);
+      
+    } catch (debugError) {
+      console.log('🔍 Debug logging failed:', debugError.message);
+    }
+    
+    throw reportTransferError;
+  }
+}
+
+// Helper function to handle document requirements page
+async function handleDocumentRequirements(page: any) {
+  console.log('📄 Starting document requirements page handling...');
+  
+  try {
+    // Wait for the documents page to load completely
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    // Take screenshot of the document requirements page
+    await page.screenshot({ path: 'document-requirements-page.png' });
+    
+    // Verify we're on the correct page
+    const currentUrl = page.url();
+    console.log(`📍 Current URL on documents page: ${currentUrl}`);
+    
+    // Check if the mandatory documents section is visible
+    const mandatorySection = await page.isVisible('text="Mandatory Document(s) Required"');
+    if (mandatorySection) {
+      console.log('✅ Document requirements page loaded successfully');
+    } else {
+      console.log('⚠️ Document requirements page may not be fully loaded');
+    }
+    
+    // Step 1: Find and check the mandatory acknowledgment checkbox
+    console.log('🔍 Looking for the mandatory documents acknowledgment checkbox...');
+    
+    let checkboxClicked = false;
+    
+    // Try multiple methods to find and click the checkbox
+    const checkboxSelectors = [
+      'input[type="checkbox"]',
+      '[type="checkbox"]',
+      'input:has-text("I understand that these document(s) are mandatory")',
+      'label:has-text("I understand that these document(s) are mandatory") input',
+      '.checkbox input',
+      '[data-testid*="checkbox"]',
+      '[role="checkbox"]'
+    ];
+    
+    for (const selector of checkboxSelectors) {
+      try {
+        console.log(`🔄 Trying checkbox selector: ${selector}`);
+        await page.waitForSelector(selector, { timeout: 5000 });
+        
+        const checkbox = page.locator(selector);
+        if (await checkbox.isVisible()) {
+          // Check if it's already checked
+          const isChecked = await checkbox.isChecked();
+          console.log(`🔍 Checkbox checked status: ${isChecked}`);
+          
+          if (!isChecked) {
+            await checkbox.check();
+            console.log('✅ Successfully checked the mandatory documents checkbox');
+            checkboxClicked = true;
+            break;
+          } else {
+            console.log('✅ Checkbox was already checked');
+            checkboxClicked = true;
+            break;
+          }
+        }
+      } catch (selectorError) {
+        console.log(`⚠️ Selector ${selector} didn't work, trying next...`);
+        continue;
+      }
+    }
+    
+    // Alternative approach: Click on the label text containing the checkbox
+    if (!checkboxClicked) {
+      try {
+        console.log('🔄 Trying to click the label text to activate checkbox...');
+        const labelText = 'I understand that these document(s) are mandatory for my verification application';
+        await page.click(`text="${labelText}"`);
+        console.log('✅ Clicked checkbox via label text');
+        checkboxClicked = true;
+      } catch (labelError) {
+        console.log('⚠️ Label text click method failed');
+      }
+    }
+    
+    // If still not clicked, try clicking near the checkbox icon
+    if (!checkboxClicked) {
+      try {
+        console.log('🔄 Trying to click checkbox icon/area...');
+        // Look for elements that might contain the checkbox visually
+        await page.click('.checkbox, [class*="check"], [class*="tick"], span:near(:text("I understand"))');
+        console.log('✅ Clicked checkbox via icon/area method');
+        checkboxClicked = true;
+      } catch (iconError) {
+        console.log('⚠️ Checkbox icon click method failed');
+      }
+    }
+    
+    // Manual intervention if automatic methods fail
+    if (!checkboxClicked) {
+      console.log('❌ Could not automatically check the mandatory documents checkbox');
+      console.log('👉 Please manually check the checkbox that says "I understand that these document(s) are mandatory..." then press Resume');
+      await page.pause();
+      checkboxClicked = true; // Assume user checked it
+    }
+    
+    // Wait a moment for any UI updates after checkbox interaction
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: 'after-checkbox-checked.png' });
+    
+    // Step 2: Click the Proceed button
+    console.log('🔍 Looking for and clicking the Proceed button...');
+    
+    try {
+      // Wait for Proceed button to be visible and enabled
+      await page.waitForSelector('button:has-text("Proceed")', { timeout: 10000 });
+      
+      const proceedButton = page.locator('button:has-text("Proceed")');
+      const isEnabled = await proceedButton.isEnabled();
+      console.log(`🔍 Proceed button enabled status: ${isEnabled}`);
+      
+      if (isEnabled) {
+        await proceedButton.click();
+        console.log('✅ Successfully clicked Proceed button');
+        
+        // Wait for navigation to next page
+        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
+        
+        const newUrl = page.url();
+        console.log(`📍 After Proceed click URL: ${newUrl}`);
+        await page.screenshot({ path: 'after-proceed-click.png' });
+        
+        // Verify that we've moved to the next step
+        if (newUrl !== currentUrl) {
+          console.log('✅ Successfully navigated to next page after clicking Proceed');
+        } else {
+          console.log('⚠️ URL didn\'t change - checking for other indicators of progress...');
+          
+          // Check if page content changed indicating progress
+          const hasUploadSection = await page.isVisible('text="Upload", text="Choose File", text="Browse", input[type="file"]');
+          if (hasUploadSection) {
+            console.log('✅ Detected file upload section - likely moved to document upload page');
+          }
+        }
+        
+      } else {
+        console.log('⚠️ Proceed button is not enabled - checkbox may not be properly checked');
+        console.log('👉 Please manually verify checkbox is checked and click Proceed, then press Resume');
+        await page.pause();
+      }
+      
+    } catch (proceedError) {
+      console.log('❌ Could not find or click Proceed button:', proceedError.message);
+      await page.screenshot({ path: 'proceed-button-error.png' });
+      
+      // Try alternative button selectors
+      const buttonSelectors = [
+        'button[type="submit"]',
+        'input[type="submit"]',
+        'button:has-text("Next")',
+        'button:has-text("Continue")',
+        'button:has-text("Submit")',
+        '.btn-primary',
+        '.proceed-btn'
+      ];
+      
+      let buttonClicked = false;
+      for (const buttonSelector of buttonSelectors) {
+        try {
+          const altButton = page.locator(buttonSelector);
+          if (await altButton.isVisible() && await altButton.isEnabled()) {
+            await altButton.click();
+            console.log(`✅ Clicked button using alternative selector: ${buttonSelector}`);
+            buttonClicked = true;
+            break;
+          }
+        } catch (altError) {
+          continue;
+        }
+      }
+      
+      if (!buttonClicked) {
+        console.log('👉 Could not find Proceed button automatically. Please manually click it, then press Resume');
+        await page.pause();
+      }
+    }
+    
+    console.log('🎉 Document requirements page handling completed successfully!');
+    
+  } catch (docError) {
+    console.log('❌ Error during document requirements handling:', docError.message);
+    await page.screenshot({ path: 'document-requirements-error.png' });
+    
+    // Enhanced debug information
+    console.log('🔍 Debug: Current page state...');
+    console.log(`🔍 Debug: Current URL: ${page.url()}`);
+    console.log(`🔍 Debug: Page title: ${await page.title()}`);
+    
+    // Log available buttons for debugging
+    try {
+      const allButtons = await page.locator('button').allTextContents();
+      console.log('🔍 Debug: Available buttons:', allButtons);
+      
+      const allInputs = await page.locator('input').count();
+      console.log(`🔍 Debug: Found ${allInputs} input elements on page`);
+      
+      // Check for checkboxes specifically
+      const checkboxes = await page.locator('input[type="checkbox"]').count();
+      console.log(`🔍 Debug: Found ${checkboxes} checkbox elements on page`);
+      
+    } catch (debugError) {
+      console.log('🔍 Debug logging failed:', debugError.message);
+    }
+    
+    throw docError;
   }
 }
 
@@ -120,7 +613,7 @@ test('Create Verification Request', async ({ page }) => {
     // Check if we're actually logged in - look for elements that indicate successful login
     try {
       // Look for sidebar, user profile, or dashboard-specific elements
-      await page.waitForSelector('text="Home", text="Verifications", text="Start New Verification", .sidebar, [class*="sidebar"]', { timeout: 10000 });
+      await page.waitForSelector('text="Home", text="Verifications", text="Start New Verification", .sidebar, [class*="sidebar"]', { timeout: 1000 });
       console.log('✅ Dashboard loaded successfully with cookies - user is logged in');
       
       // Take screenshot to verify we're logged in
@@ -177,7 +670,7 @@ test('Create Verification Request', async ({ page }) => {
   console.log('⏳ Waiting for redirect to dashboard...');
   await page.waitForFunction(() => {
     return window.location.href.includes('/dashboard') || window.location.href.includes('/home');
-  }, { timeout: 15000 });
+  }, { timeout: 5000 });
   
   const currentUrl = page.url();
   console.log('➡️ Redirected to:', currentUrl);
@@ -201,102 +694,120 @@ async function waitForManualConfirmation(page: any, message: string) {
   console.log('✅ Manual confirmation received, continuing...');
 }
 
-// Improved form filling function using the new dropdown selection method
+// IMPROVED form filling function with better error handling and retries
 async function fillVerificationForm(page: any) {
   console.log('📋 Starting verification form dropdown selections...');
   
   try {
     // Wait for the form to load completely
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000); // Increased wait time
     await page.waitForLoadState('networkidle');
     
     // Take screenshot before form filling
     await page.screenshot({ path: 'before-form-filling.png' });
     
-    // Step 1: Select "Foreign Education Recognition" in the first dropdown
-    console.log('🔍 Selecting verification reason - Foreign Education Recognition...');
-    await selectDropdownByTestId(page, 'testSpeciality', 'Foreign Education Recognition');
+    // Verify we're on the right page
+    const currentUrl = page.url();
+    console.log(`📍 Current URL before form filling: ${currentUrl}`);
     
-    // Wait for form to update after first selection
-    await page.waitForTimeout(2000);
+    // Check if dropdowns are present
+    const firstDropdownExists = await page.locator('[data-testid="testSpeciality-dropdownInput"]').isVisible();
+    console.log(`🔍 First dropdown visible: ${firstDropdownExists}`);
+    
+    if (!firstDropdownExists) {
+      console.log('⚠️ First dropdown not found, waiting longer...');
+      await page.waitForTimeout(3000);
+      await page.waitForSelector('[data-testid="testSpeciality-dropdownInput"]', { timeout: 15000 });
+    }
+    
+    // Step 1: Select "Foreign Education Recognition" in the first dropdown
+    console.log('🔍 Step 1: Selecting verification reason - Foreign Education Recognition...');
+    await selectDropdownOption(page, 'testSpeciality', 'Foreign Education Recognition');
+    
+    // Wait for form to update after first selection - increased wait time
+    await page.waitForTimeout(4000);
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: 'after-first-dropdown-selection.png' });
     
-    // Step 2: Select "Fresh Graduates - Bahraini Nationals" in the second dropdown
-    console.log('🔍 Selecting verification type - Fresh Graduates - Bahraini Nationals...');
+    // Step 2: Check if second dropdown appeared and is enabled
+    console.log('🔍 Step 2: Checking for second dropdown availability...');
     
-    // The second dropdown might have a different testId - let's try common patterns
-    const secondDropdownTestIds = [
-      'testSpecialityType',
-      'testVerificationType', 
-      'testSubSpeciality',
-      'testGraduateType'
-    ];
+    // Wait for second dropdown to become available
+    let secondDropdownReady = false;
+    let attempts = 0;
+    const maxAttempts = 10;
     
-    let secondDropdownSelected = false;
-    
-    for (const testId of secondDropdownTestIds) {
-      try {
-        await selectDropdownByTestId(page, testId, 'Fresh Graduates - Bahraini Nationals');
-        secondDropdownSelected = true;
-        break;
-      } catch (error) {
-        console.log(`⚠️ TestId ${testId} not found, trying next...`);
-        continue;
-      }
-    }
-    
-    if (!secondDropdownSelected) {
-      console.log('🔄 Trying alternative approach for second dropdown...');
+    while (!secondDropdownReady && attempts < maxAttempts) {
+      attempts++;
+      console.log(`🔄 Attempt ${attempts}: Checking second dropdown...`);
       
-      // Alternative: Find all chip containers and try the second one
       try {
-        const allChipContainers = page.locator('[class*="dropdown-module_chipContainer"]');
-        const count = await allChipContainers.count();
-        console.log(`Found ${count} dropdown containers`);
+        await page.waitForSelector('[data-testid="testSubSpeciality-dropdownInput"]', { timeout: 3000 });
+        const secondDropdown = page.locator('[data-testid="testSubSpeciality-dropdownInput"]');
         
-        if (count > 1) {
-          // Click the second dropdown
-          await allChipContainers.nth(1).click();
-          await page.waitForTimeout(1500);
-          
-          // Select the option
-          await page.click('.dropdown-module_menuItemLabel__VJuGM:has-text("Fresh Graduates - Bahraini Nationals")');
-          console.log('✅ Selected second dropdown using nth(1) approach');
-          secondDropdownSelected = true;
+        if (await secondDropdown.isVisible() && await secondDropdown.isEnabled()) {
+          secondDropdownReady = true;
+          console.log('✅ Second dropdown is ready');
+        } else {
+          console.log('⏳ Second dropdown not ready yet, waiting...');
+          await page.waitForTimeout(2000);
         }
       } catch (error) {
-        console.log('❌ Alternative approach also failed:', error.message);
+        console.log(`⏳ Second dropdown not available yet (attempt ${attempts}), waiting...`);
+        await page.waitForTimeout(2000);
       }
     }
     
-    if (!secondDropdownSelected) {
-      throw new Error('Could not select second dropdown after trying all methods');
+    if (!secondDropdownReady) {
+      console.log('⚠️ Second dropdown did not become available, trying anyway...');
     }
     
+    // Step 3: Select "Fresh Graduates - Bahraini Nationals" in the second dropdown
+    console.log('🔍 Step 3: Selecting verification type - Fresh Graduates - Bahraini Nationals...');
+    await selectDropdownOption(page, 'testSubSpeciality', 'Fresh Graduates - Bahraini Nationals');
+    
     // Wait for form to update after second selection
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     await page.waitForLoadState('networkidle');
     await page.screenshot({ path: 'after-second-dropdown-selection.png' });
     
-    // Step 3: Look for and click Continue button
-    console.log('🔍 Looking for Continue button...');
+    // Step 4: Look for and click Continue button
+    console.log('🔍 Step 4: Looking for Continue button...');
     
     try {
       // Wait for Continue button to be enabled
       await page.waitForSelector('button:has-text("Continue")', { timeout: 10000 });
       
-      // Click the Continue button
-      await page.click('button:has-text("Continue")');
-      console.log('✅ Clicked Continue button');
+      // Check if button is enabled
+      const continueButton = page.locator('button:has-text("Continue")');
+      const isEnabled = await continueButton.isEnabled();
+      console.log(`🔍 Continue button enabled status: ${isEnabled}`);
       
-      // Wait for navigation to next page
-      await page.waitForLoadState('networkidle');
-      await page.screenshot({ path: 'after-continue-click.png' });
+      if (isEnabled) {
+        await continueButton.click();
+        console.log('✅ Clicked Continue button');
+        
+        // Wait for navigation to next page
+        await page.waitForLoadState('networkidle');
+        await page.screenshot({ path: 'after-continue-click.png' });
+      } else {
+        console.log('⚠️ Continue button found but not enabled - may need manual verification');
+        console.log('👉 Please manually verify selections and click Continue if needed, then press Resume');
+        await page.pause();
+      }
       
     } catch (continueError) {
-      console.log('⚠️ Continue button not found or not clickable - this might be expected');
-      console.log('📝 Form selections completed, no Continue button needed');
+      console.log('⚠️ Continue button not found or not clickable');
+      console.log('📝 This might be expected behavior - form selections may be complete');
+      
+      // Check if we've moved to a different page or if form is complete
+      const newUrl = page.url();
+      if (newUrl !== currentUrl) {
+        console.log('✅ Page changed - form submission likely successful');
+      } else {
+        console.log('👉 Please manually click Continue if visible, then press Resume');
+        await page.pause();
+      }
     }
     
     console.log('🎉 Verification form dropdown selections completed successfully!');
@@ -305,19 +816,35 @@ async function fillVerificationForm(page: any) {
     console.log('❌ Error during form filling:', formError.message);
     await page.screenshot({ path: 'form-filling-error.png' });
     
-    // Debug information
+    // Enhanced debug information
     console.log('🔍 Debug: Taking screenshot of current state...');
     await page.screenshot({ path: 'debug-current-state.png' });
     
+    // Log current URL and page title
+    console.log(`🔍 Debug: Current URL: ${page.url()}`);
+    console.log(`🔍 Debug: Page title: ${await page.title()}`);
+    
     // Log all available dropdowns for debugging
     try {
-      const allDropdowns = await page.locator('[class*="dropdown-module_chipContainer"]').count();
-      console.log(`Debug: Found ${allDropdowns} dropdown containers on page`);
+      const allDropdowns = await page.locator('[data-testid*="-dropdownInputContainer"]').count();
+      console.log(`🔍 Debug: Found ${allDropdowns} dropdown containers on page`);
       
-      const allTestIds = await page.locator('[data-testid*="chip"]').allTextContents();
-      console.log('Debug: Available elements with testid containing "chip":', allTestIds);
+      const allInputs = await page.locator('[data-testid*="-dropdownInput"]').count();
+      console.log(`🔍 Debug: Found ${allInputs} dropdown inputs on page`);
+      
+      // Log specific testIds if available
+      if (allInputs > 0) {
+        const testIds = await page.locator('[data-testid*="-dropdownInput"]').all();
+        for (let i = 0; i < testIds.length; i++) {
+          const testIdValue = await testIds[i].getAttribute('data-testid');
+          const isVisible = await testIds[i].isVisible();
+          const isEnabled = await testIds[i].isEnabled();
+          console.log(`🔍 Debug: Dropdown ${i}: ${testIdValue}, visible: ${isVisible}, enabled: ${isEnabled}`);
+        }
+      }
+      
     } catch (debugError) {
-      console.log('Debug logging failed:', debugError.message);
+      console.log('🔍 Debug logging failed:', debugError.message);
     }
     
     throw formError;
@@ -556,11 +1083,538 @@ async function createVerificationRequest(page: any) {
     // Step 4: Fill the verification form dropdowns using the improved method
     await fillVerificationForm(page);
     
-    console.log('🎯 Complete verification flow (Bahrain → NHRA → Form) completed successfully!');
+    // Step 5: Handle document requirements page
+    await handleDocumentRequirements(page);
+    
+    // Step 6: Handle report transfer page
+    await handleReportTransferPage(page);
+     
+    // Step 7: Handle verify education page (NEW)
+    await handleVerifyEducationPage(page);
+    
+    console.log('🎯 Complete verification flow (Bahrain → NHRA → Form → Documents → Report Transfer) completed successfully!');
     
   } catch (error) {
     console.log('⚠️ Country/Authority selection failed:', error.message);
     await page.screenshot({ path: 'selection-process-error.png' });
     throw error;
   }
+ 
+  // Function to handle the "Verify your education" page
+// Add this function to your script and call it between handleReportTransferPage and handleEducationDetailsPage
+async function handleVerifyEducationPage(page: any) {
+  console.log('🎓 Starting verify education page handling...');
+  
+  try {
+    // Wait for the verify education page to load completely
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    // Take screenshot of the verify education page
+    await page.screenshot({ path: 'verify-education-page.png' });
+    
+    // Verify we're on the correct page
+    const currentUrl = page.url();
+    console.log(`📍 Current URL on verify education page: ${currentUrl}`);
+    
+    // Check if we're on the verify education page
+    const hasVerifyEducationContent = await page.isVisible('text="Verify your education"');
+    if (hasVerifyEducationContent) {
+      console.log('✅ Verify education page loaded successfully');
+      
+      // Log the pre-filled values for confirmation
+      try {
+        const hasHighestLevel = await page.isVisible('text="Bachelors"');
+        const hasDegreeTitle = await page.isVisible('input[value="cse"]');
+        const hasYear = await page.isVisible('text="2024"');
+        
+        console.log(`📝 Form pre-filled values detected:`);
+        console.log(`   - Highest educational level: ${hasHighestLevel ? 'Bachelors ✅' : 'Not detected ⚠️'}`);
+        console.log(`   - Degree title: ${hasDegreeTitle ? 'CSE ✅' : 'Not detected ⚠️'}`);
+        console.log(`   - Year of completion: ${hasYear ? '2024 ✅' : 'Not detected ⚠️'}`);
+      } catch (detectionError) {
+        console.log('📝 Could not detect all pre-filled values, but continuing...');
+      }
+      
+    } else {
+      console.log('⚠️ Verify education page may not be fully loaded');
+    }
+    
+    // Step 1: Click the Continue button
+    console.log('🔍 Looking for and clicking the Continue button...');
+    
+    try {
+      // Wait for Continue button to be visible and enabled
+      await page.waitForSelector('button:has-text("Continue")', { timeout: 10000 });
+      
+      const continueButton = page.locator('button:has-text("Continue")');
+      const isEnabled = await continueButton.isEnabled();
+      const isVisible = await continueButton.isVisible();
+      
+      console.log(`🔍 Continue button - visible: ${isVisible}, enabled: ${isEnabled}`);
+      
+      if (isVisible && isEnabled) {
+        // Take screenshot before clicking
+        await page.screenshot({ path: 'before-continue-click-verify-education.png' });
+        
+        await continueButton.click();
+        console.log('✅ Successfully clicked Continue button on verify education page');
+        
+        // Wait for navigation to next page
+        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
+        
+        const newUrl = page.url();
+        console.log(`📍 After Continue click URL: ${newUrl}`);
+        await page.screenshot({ path: 'after-continue-click-verify-education.png' });
+        
+        // Verify that we've moved to the next step
+        if (newUrl !== currentUrl) {
+          console.log('✅ Successfully navigated to next page after clicking Continue');
+          
+          // Check what type of page we landed on
+          const hasEducationDetails = await page.isVisible('text="University", text="Start Date", text="End Date"');
+          const hasPersonalInfo = await page.isVisible('text="Personal Information", text="Name", text="Date of Birth"');
+          const hasUploadSection = await page.isVisible('text="Upload", text="Choose File", text="Browse", input[type="file"]');
+          
+          if (hasEducationDetails) {
+            console.log('🎓 Detected education details section - moved to detailed education page');
+          } else if (hasPersonalInfo) {
+            console.log('👤 Detected personal information section - moved to profile/details page');
+          } else if (hasUploadSection) {
+            console.log('📁 Detected file upload section - moved to document upload page');
+          } else {
+            console.log('📄 Moved to next page (type not immediately identified)');
+          }
+          
+        } else {
+          console.log('⚠️ URL didn\'t change - checking for other indicators of progress...');
+          
+          // Check if page content changed
+          await page.waitForTimeout(2000);
+          const pageChanged = !(await page.isVisible('text="Verify your education"'));
+          if (pageChanged) {
+            console.log('✅ Page content changed - navigation likely successful');
+          }
+        }
+        
+      } else {
+        console.log('⚠️ Continue button is not visible or enabled');
+        console.log('👉 Please manually verify the form data and click Continue if available, then press Resume');
+        await page.pause();
+      }
+      
+    } catch (continueError) {
+      console.log('❌ Could not find or click Continue button:', continueError.message);
+      await page.screenshot({ path: 'continue-button-error-verify-education.png' });
+      
+      // Try alternative button selectors
+      const buttonSelectors = [
+        'button[type="submit"]',
+        'input[type="submit"]',
+        'button:has-text("Next")',
+        'button:has-text("Proceed")',
+        'button:has-text("Submit")',
+        '.btn-primary',
+        '.continue-btn',
+        '[data-testid*="continue"]',
+        '[data-testid*="next"]'
+      ];
+      
+      let buttonClicked = false;
+      for (const buttonSelector of buttonSelectors) {
+        try {
+          console.log(`🔄 Trying alternative button selector: ${buttonSelector}`);
+          const altButton = page.locator(buttonSelector);
+          if (await altButton.isVisible() && await altButton.isEnabled()) {
+            await altButton.click();
+            console.log(`✅ Clicked button using alternative selector: ${buttonSelector}`);
+            buttonClicked = true;
+            break;
+          }
+        } catch (altError) {
+          continue;
+        }
+      }
+      
+      if (!buttonClicked) {
+        console.log('👉 Could not find Continue button automatically. Please manually click it, then press Resume');
+        await page.pause();
+      }
+    }
+    
+    console.log('🎉 Verify education page handling completed successfully!');
+    
+  } catch (verifyEducationError) {
+    console.log('❌ Error during verify education page handling:', verifyEducationError.message);
+    await page.screenshot({ path: 'verify-education-error.png' });
+    
+    // Enhanced debug information
+    console.log('🔍 Debug: Current page state...');
+    console.log(`🔍 Debug: Current URL: ${page.url()}`);
+    console.log(`🔍 Debug: Page title: ${await page.title()}`);
+    
+    // Log available buttons for debugging
+    try {
+      const allButtons = await page.locator('button').allTextContents();
+      console.log('🔍 Debug: Available buttons:', allButtons);
+      
+      const allInputs = await page.locator('input').count();
+      console.log(`🔍 Debug: Found ${allInputs} input elements on page`);
+      
+      // Check for form fields
+      const hasDropdowns = await page.locator('select').count();
+      console.log(`🔍 Debug: Found ${hasDropdowns} dropdown elements on page`);
+      
+    } catch (debugError) {
+      console.log('🔍 Debug logging failed:', debugError.message);
+    }
+    
+    throw verifyEducationError;
+  }
+}
+  
+
+  await handleEducationDetailsPage(page);
+
+  // Simple function to handle education details page
+async function handleEducationDetailsPage(page) {
+  console.log('🎓 Starting education details page handling...');
+  
+  try {
+    // Wait for page to load completely
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    // Take screenshot of the education details page
+    await page.screenshot({ path: 'education-details-page.png' });
+    
+    // Verify we're on the correct page
+    const currentUrl = page.url();
+    console.log(`📍 Current URL on education details page: ${currentUrl}`);
+    
+    // Check if we're on the education details page
+    const hasEducationDetailsContent = await page.isVisible('text="Your Education details"');
+    if (hasEducationDetailsContent) {
+      console.log('✅ Education details page loaded successfully');
+    } else {
+      console.log('⚠️ Education details page may not be fully loaded');
+    }
+    
+    // Step 1: Check if "dry college" is already selected using multiple methods
+    console.log('🔍 Checking if "dry college" is already selected...');
+    const dropdownInput = page.locator('[data-testid="organization-dropdownInput"]');
+    
+    let isDryCollegeSelected = false;
+    let currentValue = '';
+    
+    try {
+      // Method 1: Check input value
+      currentValue = await dropdownInput.inputValue();
+      console.log(`📝 Input value: "${currentValue}"`);
+      
+      // Method 2: Check displayed text content
+      const displayedText = await dropdownInput.textContent();
+      console.log(`📝 Text content: "${displayedText}"`);
+      
+      // Method 3: Check inner text
+      const innerText = await dropdownInput.innerText();
+      console.log(`📝 Inner text: "${innerText}"`);
+      
+      // Method 4: Check if there's a visible selected option in the dropdown container
+      const dropdownContainer = page.locator('[data-testid="organization-dropdownInputContainer"]');
+      const containerText = await dropdownContainer.textContent();
+      console.log(`📝 Container text: "${containerText}"`);
+      
+      // Check all methods for "dry college"
+      const valuesToCheck = [currentValue, displayedText, innerText, containerText].filter(val => val);
+      isDryCollegeSelected = valuesToCheck.some(val => 
+        val.toLowerCase().includes('dry college')
+      );
+      
+      console.log(`🎯 Is "dry college" already selected: ${isDryCollegeSelected}`);
+      console.log(`🔍 Values checked: ${JSON.stringify(valuesToCheck)}`);
+      
+    } catch (error) {
+      console.log('⚠️ Error checking current value, will proceed with selection:', error.message);
+      isDryCollegeSelected = false;
+    }
+    
+    if (isDryCollegeSelected) {
+      console.log('✅ "dry college" is already selected, skipping university selection');
+    } else {
+      // Step 1: Handle University selection (click dropdown, clear, type, select second option)
+      console.log('🏫 Handling university selection...');
+      try {
+        // Target the dropdown container using data-testid
+        const dropdownContainer = page.locator('[data-testid="organization-dropdownInputContainer"]');
+        
+        console.log('🔄 Clicking university dropdown container...');
+        // Click the dropdown container to open it
+        await dropdownContainer.click();
+        await page.waitForTimeout(1000);
+        
+        console.log('🧹 Clearing existing university and typing "dry college"...');
+        // Clear the hidden input field and type new value
+        await dropdownInput.fill('');
+        await page.waitForTimeout(500);
+        await dropdownInput.type('dry college', { delay: 100 });
+        await page.waitForTimeout(2000); // Wait for dropdown options to appear
+        
+        console.log('🔍 Looking for dropdown options...');
+        // Wait for dropdown options to appear
+        await page.waitForTimeout(1500);
+        
+        // First try to find the specific second option we want: "dry college, bengaluru, india"
+        const specificOption = page.locator('text="dry college, bengaluru, india"').first();
+        const specificOptionExists = await specificOption.isVisible();
+        
+        console.log(`🔍 Looking for specific option "dry college, bengaluru, india": ${specificOptionExists}`);
+        
+        if (specificOptionExists) {
+          await specificOption.click();
+          console.log('✅ Successfully clicked "dry college, bengaluru, india" option');
+        } else {
+          console.log('🔍 Specific option not found, trying alternative approaches...');
+          
+          // Try to find all dropdown options containing "dry college"
+          const allDryCollegeOptions = page.locator('*:has-text("dry college")');
+          const optionCount = await allDryCollegeOptions.count();
+          console.log(`📋 Found ${optionCount} options containing "dry college"`);
+          
+          // Log all options for debugging
+          for (let i = 0; i < Math.min(optionCount, 5); i++) {
+            try {
+              const optionText = await allDryCollegeOptions.nth(i).textContent();
+              console.log(`🔍 Option ${i}: "${optionText}"`);
+            } catch (e) {
+              console.log(`🔍 Option ${i}: Could not read text`);
+            }
+          }
+          
+          if (optionCount >= 2) {
+            // Click the second option (index 1)
+            await allDryCollegeOptions.nth(1).click();
+            console.log('✅ Clicked second option from "dry college" results');
+          } else {
+            console.log('⚠️ Not enough options found, trying keyboard selection...');
+            // Use arrow keys to select second option
+            await page.keyboard.press('ArrowDown'); // Move to first option
+            await page.keyboard.press('ArrowDown'); // Move to second option  
+            await page.keyboard.press('Enter');     // Select second option
+            console.log('✅ Used keyboard to select second option');
+          }
+        }
+        
+        await page.waitForTimeout(1000);
+        console.log('✅ University selection completed');
+        
+      } catch (error) {
+        console.log('❌ Error in university selection:', error);
+        throw error;
+      }
+    }
+    
+    // Continue with the rest of the function (date handling, etc.)
+    console.log('🎯 University selection phase completed, proceeding to continue...');
+    
+    // Click Continue button
+    const continueButton = page.locator('button:has-text("Continue")');
+    if (await continueButton.isVisible()) {
+      await continueButton.click();
+      console.log('✅ Clicked Continue button');
+    } else {
+      console.log('⚠️ Continue button not found');
+    }
+    
+  } catch (error) {
+    console.log('❌ Error in handleEducationDetailsPage:', error);
+    throw error;
+  }
+}
+
+// Handle pricing estimate page
+await handlePricingEstimatePage(page);
+
+async function handlePricingEstimatePage(page) {
+  console.log('💰 Handling pricing estimate page...');
+  
+  await page.waitForLoadState('networkidle');
+  await page.click('button:has-text("Continue")');
+  await page.waitForLoadState('networkidle');
+  
+  console.log('✅ Pricing estimate completed');
+}
+
+//CRL document page
+await handleClientRequirementsPage(page);
+
+async function handleClientRequirementsPage(page, options = {}) {
+  console.log('📋 Handling client requirements page...');
+  
+  const { automate = false, uploadBothDocuments = false } = options;
+  
+  await page.waitForLoadState('networkidle');
+  
+  // Create dummy PDF file for testing
+  const fs = require('fs');
+  const dummyContent = '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n196\n%%EOF';
+  fs.writeFileSync('dummy-document.pdf', dummyContent);
+  console.log('📄 Created dummy PDF file for upload');
+  
+  // Tick first two checkboxes
+  const checkboxes = page.locator('input[type="checkbox"]');
+  await checkboxes.nth(0).check();
+  await checkboxes.nth(1).check();
+  console.log('✅ Checkboxes ticked');
+  
+  // Clear and fill company name field
+  const companyField = page.locator('input').nth(2);
+  await companyField.clear();
+  await companyField.fill('automation company');
+  console.log('✅ Company name filled');
+  
+  // Handle date field
+  if (automate) {
+    try {
+      await page.click('button:has-text("Select date")');
+      await page.waitForTimeout(1000);
+      await page.click('text="28"');
+      console.log('✅ Date selected automatically');
+    } catch (dateError) {
+      console.log('⚠️ Automated date selection failed, falling back to manual');
+      await handleDateManually(page);
+    }
+  } else {
+    await handleDateManually(page);
+  }
+  
+  // Handle file uploads
+  await handleFileUploads(page, uploadBothDocuments);
+  
+  // Click Continue
+  try {
+    await page.click('button:has-text("Continue")');
+    await page.waitForLoadState('networkidle');
+    console.log('✅ Client requirements completed');
+  } catch (continueError) {
+    console.log('⚠️ Continue button click failed:', continueError.message);
+    if (!automate) {
+      console.log('👉 Please manually click Continue button, then press Resume');
+      await page.pause();
+    }
+  }
+}
+
+// Helper function for manual date handling
+async function handleDateManually(page) {
+  console.log('📅 Please manually select the date of birth (March 21, 2024 or your preferred date)');
+  console.log('👉 Click on the date field and select the appropriate date, then press Resume to continue');
+  await page.pause();
+}
+
+// Helper function for file uploads
+async function handleFileUploads(page, uploadBothDocuments) {
+  console.log('📤 Starting document upload process...');
+  
+  try {
+    await page.waitForTimeout(2000);
+    
+    // Upload Oman Civil ID (optional)
+    if (uploadBothDocuments) {
+      await uploadOmanCivilId(page);
+    }
+    
+    // Upload Experience document (required)
+    await uploadExperienceDocument(page);
+    
+    console.log('📤 Document upload process completed');
+    
+  } catch (uploadError) {
+    console.log('❌ Upload error:', uploadError.message);
+    console.log('⚠️ Upload automation failed, but continuing...');
+  }
+}
+
+// Helper function for Oman Civil ID upload
+async function uploadOmanCivilId(page) {
+  console.log('📄 Uploading Oman Civil ID document...');
+  
+  try {
+    const firstUploadInput = page.locator('input[type="file"]').first();
+    await firstUploadInput.setInputFiles('./dummy-document.pdf');
+    console.log('✅ Oman Civil ID document uploaded');
+  } catch (error) {
+    console.log('⚠️ Oman Civil ID upload failed:', error.message);
+  }
+  
+  await page.waitForTimeout(1000);
+}
+
+// Helper function for Experience document upload
+async function uploadExperienceDocument(page) {
+  console.log('📄 Uploading Experience document...');
+  
+  try {
+    // Try multiple approaches to find and click the Upload button
+    let uploadButtonClicked = false;
+    
+    // Method 1: Target specific Experience Upload button
+    const experienceUploadBtn = page.locator('button:has-text("Upload")').last();
+    if (await experienceUploadBtn.isVisible()) {
+      await experienceUploadBtn.click();
+      uploadButtonClicked = true;
+      console.log('✅ Clicked Experience Upload button');
+    }
+    
+    // Method 2: Use CSS class selector as fallback
+    if (!uploadButtonClicked) {
+      const uploadByClass = page.locator('.downloadUpload-module_button__-uMBo').last();
+      if (await uploadByClass.isVisible()) {
+        await uploadByClass.click();
+        uploadButtonClicked = true;
+        console.log('✅ Clicked Upload button using CSS class');
+      }
+    }
+    
+    if (uploadButtonClicked) {
+      await page.waitForTimeout(1500);
+      
+      // Upload file to the last file input (Experience)
+      const fileInput = page.locator('input[type="file"]').last();
+      await fileInput.setInputFiles('./dummy-document.pdf');
+      console.log('✅ Experience document uploaded successfully');
+    } else {
+      // Direct approach as final fallback
+      const fileInput = page.locator('input[type="file"]').last();
+      await fileInput.setInputFiles('./dummy-document.pdf');
+      console.log('✅ Experience document uploaded via direct method');
+    }
+    
+  } catch (error) {
+    console.log('❌ Experience upload failed:', error.message);
+    throw error;
+  }
+  
+  await page.waitForTimeout(1500);
+}
+
+await handleCRLGroupName2Page(page);
+
+async function handleCRLGroupName2Page(page) {
+  console.log('📋 Handling CRL Group Name 2 page...');
+  
+  await page.waitForLoadState('networkidle');
+  
+  // Click the checkbox
+  await page.click('input[type="checkbox"]');
+  console.log('✅ Checkbox clicked');
+  
+  // Click Continue
+  await page.click('button:has-text("Continue")');
+  await page.waitForLoadState('networkidle');
+  
+  console.log('✅ CRL Group Name 2 completed');
+}
+
 }
