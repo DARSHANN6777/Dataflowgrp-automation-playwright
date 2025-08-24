@@ -1531,21 +1531,21 @@ async function handleFileUploads(page, uploadBothDocuments) {
     console.log('📤 Document upload process completed');
     
   } catch (uploadError) {
-    console.log('❌ Upload error:', uploadError.message);
-    console.log('⚠️ Upload automation failed, but continuing...');
+    console.log('Upload error:', uploadError.message);
+    console.log('Upload automation failed, but continuing...');
   }
 }
 
 // Helper function for Oman Civil ID upload
 async function uploadOmanCivilId(page) {
-  console.log('📄 Uploading Oman Civil ID document...');
+  console.log('Uploading Oman Civil ID document...');
   
   try {
     const firstUploadInput = page.locator('input[type="file"]').first();
     await firstUploadInput.setInputFiles('./dummy-document.pdf');
-    console.log('✅ Oman Civil ID document uploaded');
+    console.log('Oman Civil ID document uploaded');
   } catch (error) {
-    console.log('⚠️ Oman Civil ID upload failed:', error.message);
+    console.log('Oman Civil ID upload failed:', error.message);
   }
   
   await page.waitForTimeout(1000);
@@ -1553,7 +1553,7 @@ async function uploadOmanCivilId(page) {
 
 // Helper function for Experience document upload
 async function uploadExperienceDocument(page) {
-  console.log('📄 Uploading Experience document...');
+  console.log(' Uploading Experience document...');
   
   try {
     // Try multiple approaches to find and click the Upload button
@@ -1564,7 +1564,7 @@ async function uploadExperienceDocument(page) {
     if (await experienceUploadBtn.isVisible()) {
       await experienceUploadBtn.click();
       uploadButtonClicked = true;
-      console.log('✅ Clicked Experience Upload button');
+      console.log('Clicked Experience Upload button');
     }
     
     // Method 2: Use CSS class selector as fallback
@@ -1573,7 +1573,7 @@ async function uploadExperienceDocument(page) {
       if (await uploadByClass.isVisible()) {
         await uploadByClass.click();
         uploadButtonClicked = true;
-        console.log('✅ Clicked Upload button using CSS class');
+        console.log('Clicked Upload button using CSS class');
       }
     }
     
@@ -1592,7 +1592,7 @@ async function uploadExperienceDocument(page) {
     }
     
   } catch (error) {
-    console.log('❌ Experience upload failed:', error.message);
+    console.log('Experience upload failed:', error.message);
     throw error;
   }
   
@@ -1602,19 +1602,954 @@ async function uploadExperienceDocument(page) {
 await handleCRLGroupName2Page(page);
 
 async function handleCRLGroupName2Page(page) {
-  console.log('📋 Handling CRL Group Name 2 page...');
+  console.log(' Handling CRL Group Name 2 page...');
   
   await page.waitForLoadState('networkidle');
   
   // Click the checkbox
   await page.click('input[type="checkbox"]');
-  console.log('✅ Checkbox clicked');
+  console.log('Checkbox clicked');
   
   // Click Continue
   await page.click('button:has-text("Continue")');
   await page.waitForLoadState('networkidle');
   
-  console.log('✅ CRL Group Name 2 completed');
+  console.log('CRL Group Name 2 completed');
+}
+
+// Handle Upload Document - Identity page (NEW)
+await handleUploadDocumentIdentityPage(page);
+
+// After manual completion of Date of Expiry
+await saveAndContinueIdentity(page);
+
+// Helper function to handle Upload Document - Identity page
+async function handleUploadDocumentIdentityPage(page) {
+  console.log('📄 Starting Upload Document - Identity page handling...');
+  
+  try {
+    // Wait for the upload document page to load completely
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
+    
+    // Take screenshot of the upload document page
+    await page.screenshot({ path: 'upload-document-identity-page.png' });
+    
+    // Verify we're on the correct page
+    const currentUrl = page.url();
+    console.log(`📍 Current URL on upload document page: ${currentUrl}`);
+    
+    // Check if we're on the upload document page
+    const hasUploadDocumentContent = await page.isVisible('text="Upload Document"');
+    const hasIdentityTab = await page.isVisible('text="Identity"');
+    if (hasUploadDocumentContent && hasIdentityTab) {
+      console.log('✅ Upload Document - Identity page loaded successfully');
+    } else {
+      console.log('⚠️ Upload Document - Identity page may not be fully loaded');
+    }
+    
+    // Step 1: Upload the passport document
+    console.log('📤 Step 1: Uploading passport document...');
+    await uploadPassportDocument(page);
+    
+    // Step 2: Fill in the identity form details
+    console.log('📝 Step 2: Filling identity form details...');
+    await fillIdentityFormDetails(page);
+    
+    // Step 3: Click Save and Continue button
+    console.log('💾 Step 3: Clicking Save and Continue...');
+    await saveAndContinueIdentity(page);
+    
+    console.log('🎉 Upload Document - Identity page handling completed successfully!');
+    
+  } catch (identityUploadError) {
+    console.log('❌ Error during upload document identity handling:', identityUploadError.message);
+    await page.screenshot({ path: 'upload-document-identity-error.png' });
+    
+    // Enhanced debug information
+    console.log('🔍 Debug: Current page state...');
+    console.log(`🔍 Debug: Current URL: ${page.url()}`);
+    console.log(`🔍 Debug: Page title: ${await page.title()}`);
+    
+    throw identityUploadError;
+  }
+}
+
+// Helper function to upload passport document
+async function uploadPassportDocument(page) {
+  console.log('📤 Uploading passport document...');
+  
+  try {
+    // Create dummy PDF file for passport if it doesn't exist
+    const fs = require('fs');
+    if (!fs.existsSync('dummy-passport.pdf')) {
+      const dummyPassportContent = '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 44 >>\nstream\nBT\n/F1 12 Tf\n100 700 Td\n(PASSPORT DOCUMENT) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000245 00000 n\ntrailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n344\n%%EOF';
+      fs.writeFileSync('dummy-passport.pdf', dummyPassportContent);
+      console.log('📄 Created dummy passport PDF file');
+    }
+    
+    // Method 1: Click the upload area directly
+    try {
+      console.log('🔄 Method 1: Clicking upload area...');
+      await page.waitForSelector('text="Click to upload"', { timeout: 5000 });
+      await page.click('text="Click to upload"');
+      console.log('✅ Clicked upload area');
+    } catch (uploadAreaError) {
+      console.log('🔄 Method 1 failed, trying method 2...');
+      
+      // Method 2: Click the upload container/div
+      try {
+        console.log('🔄 Method 2: Clicking upload container...');
+        const uploadContainer = page.locator('.upload-container, [class*="upload"], [data-testid*="upload"]').first();
+        await uploadContainer.click();
+        console.log('✅ Clicked upload container');
+      } catch (containerError) {
+        console.log('🔄 Method 2 failed, trying method 3...');
+        
+        // Method 3: Direct file input approach
+        console.log('🔄 Method 3: Using direct file input...');
+      }
+    }
+    
+    // Wait for file dialog or direct upload
+    await page.waitForTimeout(1000);
+    
+    // Upload the file using the file input
+    const fileInput = page.locator('input[type="file"]').first();
+    await fileInput.setInputFiles('./dummy-passport.pdf');
+    console.log('✅ Passport document uploaded successfully');
+    
+    // Wait for upload to complete
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: 'after-passport-upload.png' });
+    
+  } catch (uploadError) {
+    console.log('❌ Passport upload failed:', uploadError.message);
+    console.log('👉 Please manually upload a passport document, then press Resume');
+    await page.pause();
+  }
+}
+
+// Helper function to fill identity form details
+async function fillIdentityFormDetails(page) {
+  console.log('📝 Filling identity form details...');
+  
+  try {
+    // Wait for form to be ready after upload
+    await page.waitForTimeout(2000);
+    
+    // Fill First Name
+    console.log('📝 Filling First Name...');
+    const firstNameField = page.locator('input').filter({ hasText: /First Name|Type here/ }).first();
+    // Try multiple selectors for first name
+    const firstNameSelectors = [
+      'input[placeholder*="Type here"]',
+      'input[name*="firstName"]',
+      'input[name*="first_name"]',
+      'input[id*="firstName"]',
+      'input[id*="first_name"]'
+    ];
+    
+    let firstNameFilled = false;
+    for (const selector of firstNameSelectors) {
+      try {
+        const field = page.locator(selector).first();
+        if (await field.isVisible()) {
+          await field.fill('John');
+          console.log('✅ First Name filled: John');
+          firstNameFilled = true;
+          break;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    if (!firstNameFilled) {
+      // Generic approach - fill the first empty text input
+      const textInputs = page.locator('input[type="text"]');
+      const inputCount = await textInputs.count();
+      for (let i = 0; i < inputCount; i++) {
+        const input = textInputs.nth(i);
+        const value = await input.inputValue();
+        if (!value || value.trim() === '') {
+          await input.fill('John');
+          console.log(`✅ Filled first empty input (index ${i}) with: John`);
+          break;
+        }
+      }
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Fill Middle Name (optional)
+    console.log('📝 Filling Middle Name...');
+    const middleNameSelectors = [
+      'input[placeholder*="Type here"]',
+      'input[name*="middleName"]',
+      'input[name*="middle_name"]',
+      'input[id*="middleName"]',
+      'input[id*="middle_name"]'
+    ];
+    
+    for (const selector of middleNameSelectors) {
+      try {
+        const field = page.locator(selector).nth(1); // Second field is usually middle name
+        if (await field.isVisible()) {
+          const currentValue = await field.inputValue();
+          if (!currentValue || currentValue.trim() === '') {
+            await field.fill('Michael');
+            console.log('✅ Middle Name filled: Michael');
+            break;
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Fill Last Name
+    console.log('📝 Filling Last Name...');
+    const lastNameSelectors = [
+      'input[placeholder*="Type here"]',
+      'input[name*="lastName"]',
+      'input[name*="last_name"]',
+      'input[id*="lastName"]',
+      'input[id*="last_name"]'
+    ];
+    
+    for (const selector of lastNameSelectors) {
+      try {
+        const field = page.locator(selector).nth(2); // Third field is usually last name
+        if (await field.isVisible()) {
+          const currentValue = await field.inputValue();
+          if (!currentValue || currentValue.trim() === '') {
+            await field.fill('Doe');
+            console.log('✅ Last Name filled: Doe');
+            break;
+          }
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Fill Nationality
+    console.log('📝 Filling Nationality...');
+    try {
+      const nationalityField = page.locator('input[name*="nationality"], input[id*="nationality"]').first();
+      if (await nationalityField.isVisible()) {
+        await nationalityField.fill('Indian');
+        console.log('✅ Nationality filled: Indian');
+      } else {
+        // Try finding by placeholder text
+        const textInputs = page.locator('input[type="text"]');
+        const inputCount = await textInputs.count();
+        for (let i = 0; i < inputCount; i++) {
+          const input = textInputs.nth(i);
+          const placeholder = await input.getAttribute('placeholder');
+          if (placeholder && placeholder.toLowerCase().includes('nation')) {
+            await input.fill('Indian');
+            console.log('✅ Nationality filled: Indian');
+            break;
+          }
+        }
+      }
+    } catch (nationalityError) {
+      console.log('⚠️ Could not fill nationality automatically');
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Verify Date of Birth is pre-filled (August 19, 2002 as seen in screenshot)
+    console.log('📅 Verifying Date of Birth...');
+    try {
+      const dobField = page.locator('input[value*="August"], input[value*="2002"], input[placeholder*="date"]').first();
+      if (await dobField.isVisible()) {
+        const dobValue = await dobField.inputValue();
+        console.log(`✅ Date of Birth is pre-filled: ${dobValue}`);
+      }
+    } catch (dobError) {
+      console.log('📅 Date of Birth field status unclear, but continuing...');
+    }
+    
+    // Handle Gender dropdown - AUTOMATICALLY SELECT MALE
+    console.log('👤 Selecting Gender automatically...');
+    try {
+      // Target the specific dropdown structure based on the provided HTML
+      const genderDropdownSelectors = [
+        'input.dropdown-module_dropdownInput__l6tDa', // Specific class from your HTML
+        'input[placeholder="Select"][data-testid*="dropdownInput"]', // Data testid pattern
+        'input[placeholder="Select"]', // Generic placeholder
+        '.dropdown-module_dropdownInput__l6tDa', // Class selector
+        'input[type="text"][placeholder="Select"]' // Generic text input with Select placeholder
+      ];
+      
+      let dropdownOpened = false;
+      let dropdownElement = null;
+      
+      // First, find and click the dropdown input to open it
+      for (const selector of genderDropdownSelectors) {
+        try {
+          console.log(`🔍 Trying gender dropdown selector: ${selector}`);
+          const dropdown = page.locator(selector);
+          const count = await dropdown.count();
+          
+          console.log(`Found ${count} elements with selector: ${selector}`);
+          
+          if (count > 0) {
+            // Try each element found with this selector
+            for (let i = 0; i < count; i++) {
+              const element = dropdown.nth(i);
+              if (await element.isVisible()) {
+                console.log(`✅ Found visible dropdown at index ${i} with selector: ${selector}`);
+                await element.click();
+                console.log(`✅ Clicked dropdown input`);
+                await page.waitForTimeout(1500); // Wait for dropdown to open
+                dropdownOpened = true;
+                dropdownElement = element;
+                break;
+              }
+            }
+            if (dropdownOpened) break;
+          }
+        } catch (e) {
+          console.log(`❌ Failed with selector ${selector}: ${e.message}`);
+          continue;
+        }
+      }
+      
+      // If dropdown opened successfully, try to select Male option
+      if (dropdownOpened) {
+        console.log('🔍 Looking for Male option...');
+        
+        // Target the specific Male option structure from your HTML
+        const maleOptionSelectors = [
+          'div.dropdown-module_menuItemLabel__VJuGM:has-text("Male")', // Specific class with Male text
+          '.dropdown-module_menuItemLabel__VJuGM:has-text("Male")', // Class selector variant
+          'div:has-text("Male")', // Generic div with Male text
+          '[class*="menuItemLabel"]:has-text("Male")', // Partial class match
+          '[class*="menuItem"]:has-text("Male")', // Another partial class match
+          'text="Male"' // Exact text match as fallback
+        ];
+        
+        let maleSelected = false;
+        
+        for (const maleSelector of maleOptionSelectors) {
+          try {
+            console.log(`🔍 Trying Male option selector: ${maleSelector}`);
+            const maleOption = page.locator(maleSelector);
+            const count = await maleOption.count();
+            
+            console.log(`Found ${count} Male options with selector: ${maleSelector}`);
+            
+            if (count > 0) {
+              // Try the first visible Male option
+              const element = maleOption.first();
+              if (await element.isVisible()) {
+                await element.click();
+                console.log(`✅ Successfully selected Male using selector: ${maleSelector}`);
+                maleSelected = true;
+                break;
+              }
+            }
+          } catch (e) {
+            console.log(`❌ Failed to select Male with selector ${maleSelector}: ${e.message}`);
+            continue;
+          }
+        }
+        
+        // Additional fallback: try to find any element containing "Male" text
+        if (!maleSelected) {
+          try {
+            console.log('🔍 Trying fallback: any element containing "Male"...');
+            await page.waitForTimeout(1000); // Extra wait for dropdown to fully render
+            
+            const maleElements = page.getByText('Male');
+            const count = await maleElements.count();
+            console.log(`Found ${count} elements containing "Male" text`);
+            
+            if (count > 0) {
+              for (let i = 0; i < count; i++) {
+                const element = maleElements.nth(i);
+                if (await element.isVisible()) {
+                  await element.click();
+                  console.log(`✅ Successfully clicked Male element at index ${i}`);
+                  maleSelected = true;
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            console.log('❌ Fallback method also failed:', e.message);
+          }
+        }
+        
+        if (!maleSelected) {
+          console.log('⚠️ Could not automatically select Male option');
+          console.log('👉 Dropdown is open, please manually select "Male" and then press Resume');
+          await page.pause();
+        } else {
+          // Wait a bit after selection to ensure it registers
+          await page.waitForTimeout(1000);
+          console.log('✅ Gender selection completed successfully');
+        }
+        
+      } else {
+        console.log('❌ Could not open gender dropdown automatically');
+        console.log('👉 Please manually open dropdown and select gender, then press Resume');
+        await page.pause();
+      }
+      
+    } catch (genderError) {
+      console.log('❌ Error handling gender dropdown:', genderError.message);
+      console.log('👉 Please manually select gender and then press Resume');
+      await page.pause();
+    }
+    
+    await page.waitForTimeout(1000);
+    
+    // Fill ID Number (but leave Date of Expiry for manual input)
+    console.log('🆔 Filling ID Number...');
+    try {
+      // Look for the last input field that's likely the ID number
+      const idNumberSelectors = [
+        'input[name*="id"]',
+        'input[name*="ID"]', 
+        'input[id*="id"]',
+        'input[id*="ID"]',
+        'input[placeholder*="Type here"]:last-of-type'
+      ];
+      
+      for (const selector of idNumberSelectors) {
+        try {
+          const field = page.locator(selector).last();
+          if (await field.isVisible()) {
+            const currentValue = await field.inputValue();
+            if (!currentValue || currentValue.trim() === '') {
+              await field.fill('A12345678');
+              console.log('✅ ID Number filled: A12345678');
+              break;
+            }
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+    } catch (idError) {
+      console.log('🆔 Could not fill ID number automatically');
+    }
+    
+    // Note about Date of Expiry - leave for manual input
+    console.log('📅 Date of Expiry field left for manual input as requested');
+    console.log('👉 Please manually fill the Date of Expiry field before clicking Save and Continue');
+    
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: 'after-identity-form-fill.png' });
+    
+    console.log('📝 Identity form details filling completed (except Date of Expiry)');
+    console.log('👉 Please fill Date of Expiry manually, then the script will continue');
+    
+  } catch (formError) {
+    console.log('❌ Error filling identity form:', formError.message);
+    console.log('👉 Please manually fill any missing fields, then press Resume');
+    await page.pause();
+  }
+}
+
+// Helper function to click Save and Continue
+async function saveAndContinueIdentity(page) {
+  console.log('💾 Clicking Save and Continue button...');
+  
+  try {
+    // Wait for form to be complete
+    await page.waitForTimeout(1000);
+    
+    // Look for Save and Continue button
+    const saveButton = page.locator('button:has-text("Save and Continue")');
+    
+    if (await saveButton.isVisible()) {
+      const isEnabled = await saveButton.isEnabled();
+      console.log(`🔍 Save and Continue button - visible: true, enabled: ${isEnabled}`);
+      
+      if (isEnabled) {
+        // Take screenshot before clicking
+        await page.screenshot({ path: 'before-save-continue-identity.png' });
+        
+        await saveButton.click();
+        console.log('✅ Successfully clicked Save and Continue button');
+        
+        // Wait for navigation to next page
+        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
+        
+        const newUrl = page.url();
+        console.log(`📍 After Save and Continue URL: ${newUrl}`);
+        await page.screenshot({ path: 'after-save-continue-identity.png' });
+        
+        console.log('✅ Successfully navigated to next page after Save and Continue');
+        
+      } else {
+        console.log('⚠️ Save and Continue button is not enabled - form may be incomplete');
+        console.log('👉 Please manually complete the form and click Save and Continue, then press Resume');
+        await page.pause();
+      }
+      
+    } else {
+      console.log('❌ Save and Continue button not found');
+      
+      // Try alternative button selectors
+      const buttonSelectors = [
+        'button[type="submit"]',
+        'input[type="submit"]',
+        'button:has-text("Continue")',
+        'button:has-text("Save")',
+        'button:has-text("Next")',
+        '.btn-primary',
+        '.save-btn'
+      ];
+      
+      let buttonClicked = false;
+      for (const buttonSelector of buttonSelectors) {
+        try {
+          console.log(`🔄 Trying alternative button selector: ${buttonSelector}`);
+          const altButton = page.locator(buttonSelector);
+          if (await altButton.isVisible() && await altButton.isEnabled()) {
+            await altButton.click();
+            console.log(`✅ Clicked button using alternative selector: ${buttonSelector}`);
+            buttonClicked = true;
+            break;
+          }
+        } catch (altError) {
+          continue;
+        }
+      }
+      
+      if (!buttonClicked) {
+        console.log('👉 Could not find Save and Continue button automatically. Please manually click it, then press Resume');
+        await page.pause();
+      }
+    }
+    
+  } catch (saveError) {
+    console.log('❌ Error clicking Save and Continue:', saveError.message);
+    await page.screenshot({ path: 'save-continue-error-identity.png' });
+    console.log('👉 Please manually click Save and Continue, then press Resume');
+    await page.pause();
+  }
+}
+
+// Call this function when you reach the Degree/Diploma page
+await fillDegreeDiplomaFormDetails(page);
+
+// After manual completion of dates and file uploads
+await saveAndContinueDegreeDiploma(page);
+
+// Helper function to fill degree/diploma form details
+async function fillDegreeDiplomaFormDetails(page) {
+  console.log('🎓 Filling degree/diploma form details...');
+  try {
+    // Wait for form to be ready
+    await page.waitForTimeout(1000);
+    
+    // Skip University Name and Degree - as requested, do not touch these fields
+    console.log('🏫 Skipping University Name and Degree fields as requested');
+    
+    // Handle Department Name dropdown - select BE
+    console.log('📚 Selecting Department Name (BE)...');
+    try {
+      // Find the Department Name dropdown - it shows "Select" placeholder
+      const departmentDropdown = page.locator('text="Department name"').locator('..').locator('input, div[role="combobox"], div[tabindex="0"]').first();
+      
+      // Alternative: directly target the dropdown with "Select" text under Department name
+      const departmentSelect = page.locator('text="Department name"').locator('..').locator('text="Select"').first();
+      
+      let departmentClicked = false;
+      
+      // Try clicking the Select text first (more reliable)
+      if (await departmentSelect.isVisible()) {
+        await departmentSelect.click();
+        console.log('✅ Clicked Department Name dropdown via Select text');
+        departmentClicked = true;
+      } else if (await departmentDropdown.isVisible()) {
+        await departmentDropdown.click();
+        console.log('✅ Clicked Department Name dropdown via input');
+        departmentClicked = true;
+      }
+      
+      if (departmentClicked) {
+        await page.waitForTimeout(1000);
+        
+        // Look for BE option in the dropdown menu
+        const beOptionSelectors = [
+          'div.dropdown-module_menuItemLabel__VJuGM:has-text("BE")',
+          '.dropdown-module_menuItem__lQ-VE:has-text("BE")',
+          'div[role="option"]:has-text("BE")',
+          'li:has-text("BE")',
+          'text="BE"'
+        ];
+        
+        let departmentSelected = false;
+        for (const beSelector of beOptionSelectors) {
+          try {
+            const beOption = page.locator(beSelector).first();
+            if (await beOption.isVisible()) {
+              await beOption.click();
+              console.log('✅ Selected BE from Department Name dropdown');
+              departmentSelected = true;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        if (!departmentSelected) {
+          console.log('⚠️ Could not find BE option in dropdown');
+        }
+      } else {
+        console.log('❌ Could not find Department Name dropdown');
+      }
+      
+    } catch (departmentError) {
+      console.log('❌ Error selecting department:', departmentError.message);
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Handle Course Name dropdown - select CSE
+    console.log('💻 Selecting Course Name (CSE)...');
+    try {
+      // Find the Course Name dropdown - it shows "Select" placeholder
+      const courseDropdown = page.locator('text="Course Name"').locator('..').locator('input, div[role="combobox"], div[tabindex="0"]').first();
+      
+      // Alternative: directly target the dropdown with "Select" text under Course Name
+      const courseSelect = page.locator('text="Course Name"').locator('..').locator('text="Select"').first();
+      
+      let courseClicked = false;
+      
+      // Try clicking the Select text first (more reliable)
+      if (await courseSelect.isVisible()) {
+        await courseSelect.click();
+        console.log('✅ Clicked Course Name dropdown via Select text');
+        courseClicked = true;
+      } else if (await courseDropdown.isVisible()) {
+        await courseDropdown.click();
+        console.log('✅ Clicked Course Name dropdown via input');
+        courseClicked = true;
+      }
+      
+      if (courseClicked) {
+        await page.waitForTimeout(1000);
+        
+        // Look for CSE option in the dropdown menu
+        const cseOptionSelectors = [
+          'div.dropdown-module_menuItemLabel__VJuGM:has-text("CSE")',
+          '.dropdown-module_menuItem__lQ-VE:has-text("CSE")',
+          'div[role="option"]:has-text("CSE")',
+          'li:has-text("CSE")',
+          'text="CSE"'
+        ];
+        
+        let courseSelected = false;
+        for (const cseSelector of cseOptionSelectors) {
+          try {
+            const cseOption = page.locator(cseSelector).first();
+            if (await cseOption.isVisible()) {
+              await cseOption.click();
+              console.log('✅ Selected CSE from Course Name dropdown');
+              courseSelected = true;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        if (!courseSelected) {
+          console.log('⚠️ Could not find CSE option in dropdown');
+        }
+      } else {
+        console.log('❌ Could not find Course Name dropdown');
+      }
+      
+    } catch (courseError) {
+      console.log('❌ Error selecting course:', courseError.message);
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Fill Program Duration (in years) - type 4
+    console.log('⏱️ Filling Program Duration...');
+    try {
+      // Find the Program Duration field by looking near the label
+      const durationInput = page.locator('text="Program Duration (in years)"').locator('..').locator('input[placeholder="Type here"]').first();
+      
+      if (await durationInput.isVisible()) {
+        await durationInput.fill('4');
+        console.log('✅ Program Duration filled: 4 years');
+      } else {
+        console.log('❌ Could not find Program Duration input field');
+      }
+      
+    } catch (durationError) {
+      console.log('❌ Error filling program duration:', durationError.message);
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Handle Mode of Study dropdown - select Active Enrollment
+    console.log('📖 Selecting Mode of Study (Active Enrollment)...');
+    try {
+      // Find the Mode of Study dropdown - it shows "Select" placeholder
+      const modeDropdown = page.locator('text="Mode of Study"').locator('..').locator('input, div[role="combobox"], div[tabindex="0"]').first();
+      
+      // Alternative: directly target the dropdown with "Select" text under Mode of Study
+      const modeSelect = page.locator('text="Mode of Study"').locator('..').locator('text="Select"').first();
+      
+      let modeClicked = false;
+      
+      // Try clicking the Select text first (more reliable)
+      if (await modeSelect.isVisible()) {
+        await modeSelect.click();
+        console.log('✅ Clicked Mode of Study dropdown via Select text');
+        modeClicked = true;
+      } else if (await modeDropdown.isVisible()) {
+        await modeDropdown.click();
+        console.log('✅ Clicked Mode of Study dropdown via input');
+        modeClicked = true;
+      }
+      
+      if (modeClicked) {
+        await page.waitForTimeout(1000);
+        
+        // Look for Active Enrollment option
+        const activeEnrollmentSelectors = [
+          'div.dropdown-module_menuItemLabel__VJuGM:has-text("Active Enrollment")',
+          'div[role="option"]:has-text("Active Enrollment")',
+          'li:has-text("Active Enrollment")',
+          'text="Active Enrollment"'
+        ];
+        
+        let modeSelected = false;
+        for (const activeSelector of activeEnrollmentSelectors) {
+          try {
+            const activeOption = page.locator(activeSelector).first();
+            if (await activeOption.isVisible()) {
+              await activeOption.click();
+              console.log('✅ Selected Active Enrollment from Mode of Study dropdown');
+              modeSelected = true;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        if (!modeSelected) {
+          console.log('⚠️ Could not find Active Enrollment option');
+        }
+      } else {
+        console.log('❌ Could not find Mode of Study dropdown');
+      }
+      
+    } catch (modeError) {
+      console.log('❌ Error selecting mode of study:', modeError.message);
+    }
+    
+    await page.waitForTimeout(500);
+    
+    // Note about Start Date and End Date - leave for manual input
+    console.log('📅 Start Date and End Date left for manual input as requested');
+    
+    // Fill First Name and Last Name (same as identity page)
+    console.log('📝 Filling First Name and Last Name...');
+    try {
+      // Fill First Name - look for input that might be first name
+      const firstNameSelectors = [
+        'input[name*="firstName"]',
+        'input[name*="first"]',
+        'input[placeholder*="First"]',
+        'input[id*="firstName"]'
+      ];
+      
+      for (const selector of firstNameSelectors) {
+        try {
+          const field = page.locator(selector).first();
+          if (await field.isVisible()) {
+            await field.fill('John');
+            console.log('✅ First Name filled: John');
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      await page.waitForTimeout(500);
+      
+      // Fill Last Name
+      const lastNameSelectors = [
+        'input[name*="lastName"]',
+        'input[name*="last"]',
+        'input[placeholder*="Last"]',
+        'input[id*="lastName"]'
+      ];
+      
+      for (const selector of lastNameSelectors) {
+        try {
+          const field = page.locator(selector).first();
+          if (await field.isVisible()) {
+            await field.fill('Doe');
+            console.log('✅ Last Name filled: Doe');
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      
+    } catch (nameError) {
+      console.log('❌ Error filling names:', nameError.message);
+    }
+    
+    await page.waitForTimeout(1000);
+    
+    // Upload dummy files for the four document types
+    console.log('📁 Uploading dummy files...');
+    try {
+      // Look for file upload buttons or inputs
+      const fileUploadSelectors = [
+        'input[type="file"]',
+        'button:has-text("Upload")',
+        'button:has-text("Choose")',
+        'button:has-text("Browse")',
+        '[data-testid*="upload"]'
+      ];
+      
+      // Create a dummy file for upload (you'll need to have actual dummy files)
+      // For now, we'll just identify upload elements
+      for (const selector of fileUploadSelectors) {
+        try {
+          const uploadElements = page.locator(selector);
+          const count = await uploadElements.count();
+          
+          console.log(`Found ${count} upload elements with selector: ${selector}`);
+          
+          // Note: For actual file upload, you would need to provide file paths
+          // Example: await uploadElement.setInputFiles('path/to/dummy-file.pdf');
+          
+        } catch (e) {
+          continue;
+        }
+      }
+      
+      console.log('📁 File upload elements identified');
+      console.log('👉 Please manually upload the required documents, or provide file paths for automation');
+      
+    } catch (uploadError) {
+      console.log('❌ Error with file uploads:', uploadError.message);
+    }
+    
+    await page.screenshot({ path: 'after-degree-diploma-form-fill.png' });
+    
+    console.log('🎓 Degree/Diploma form details filling completed');
+    console.log('👉 Please manually:');
+    console.log('   - Fill Start Date and End Date');
+    console.log('   - Upload the four required documents');
+    console.log('   - Then click Save and Continue');
+    
+  } catch (formError) {
+    console.log('❌ Error filling degree/diploma form:', formError.message);
+    console.log('👉 Please manually complete any missing fields, then press Resume');
+    await page.pause();
+  }
+}
+
+// Helper function to click Save and Continue for degree/diploma page
+async function saveAndContinueDegreeDiploma(page) {
+  console.log('💾 Clicking Save and Continue button for Degree/Diploma...');
+  
+  try {
+    // Wait for form to be complete
+    await page.waitForTimeout(1000);
+    
+    // Look for Save and Continue button
+    const saveButton = page.locator('button:has-text("Save and Continue")');
+    
+    if (await saveButton.isVisible()) {
+      const isEnabled = await saveButton.isEnabled();
+      console.log(`🔍 Save and Continue button - visible: true, enabled: ${isEnabled}`);
+      
+      if (isEnabled) {
+        // Take screenshot before clicking
+        await page.screenshot({ path: 'before-save-continue-degree.png' });
+        
+        await saveButton.click();
+        console.log('✅ Successfully clicked Save and Continue button');
+        
+        // Wait for navigation to next page
+        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
+        
+        const newUrl = page.url();
+        console.log(`📍 After Save and Continue URL: ${newUrl}`);
+        await page.screenshot({ path: 'after-save-continue-degree.png' });
+        
+        console.log('✅ Successfully navigated to next page after Save and Continue');
+        
+      } else {
+        console.log('⚠️ Save and Continue button is not enabled - form may be incomplete');
+        console.log('👉 Please manually complete the form and click Save and Continue, then press Resume');
+        await page.pause();
+      }
+      
+    } else {
+      console.log('❌ Save and Continue button not found - trying alternative selectors');
+      
+      // Try alternative button selectors
+      const buttonSelectors = [
+        'button[type="submit"]',
+        'input[type="submit"]',
+        'button:has-text("Continue")',
+        'button:has-text("Save")',
+        'button:has-text("Next")',
+        '.btn-primary',
+        '.save-btn'
+      ];
+      
+      let buttonClicked = false;
+      for (const buttonSelector of buttonSelectors) {
+        try {
+          console.log(`🔄 Trying alternative button selector: ${buttonSelector}`);
+          const altButton = page.locator(buttonSelector);
+          if (await altButton.isVisible() && await altButton.isEnabled()) {
+            await altButton.click();
+            console.log(`✅ Clicked button using alternative selector: ${buttonSelector}`);
+            buttonClicked = true;
+            break;
+          }
+        } catch (altError) {
+          continue;
+        }
+      }
+      
+      if (!buttonClicked) {
+        console.log('👉 Could not find Save and Continue button automatically. Please manually click it, then press Resume');
+        await page.pause();
+      }
+    }
+    
+  } catch (saveError) {
+    console.log('❌ Error clicking Save and Continue:', saveError.message);
+    await page.screenshot({ path: 'save-continue-error-degree.png' });
+    console.log('👉 Please manually click Save and Continue, then press Resume');
+    await page.pause();
+  }
 }
 
 }
