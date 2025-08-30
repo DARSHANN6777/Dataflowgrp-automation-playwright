@@ -2,6 +2,16 @@
   "email": "ndarshan+story47@dataflowgroup.com",
   "cookies": [
     {
+      "name": "cwr_u",
+      "value": "1f9204f2-d074-4b10-92a4-ef2cf566c911",
+      "domain": ".app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1759135639,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
       "name": "portalLang",
       "value": "en",
       "domain": "app.staging.dataflowgroup.com",
@@ -16,7 +26,7 @@
       "value": "",
       "domain": "app.staging.dataflowgroup.com",
       "path": "/",
-      "expires": 1787550465,
+      "expires": 1788079639,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -26,31 +36,41 @@
       "value": "",
       "domain": "app.staging.dataflowgroup.com",
       "path": "/",
-      "expires": 1787550465,
+      "expires": 1788079639,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "at",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..-NQiTSeIJNRhfPj7znX_PQ.BEy4IrwUUXbjxhBX-nLpEkw9Fcpy5_akO8Gw-GZtLFIsKiAez1bo0WEwC2Kw9etSVx37YKGeRwzUxIaSxB-Sk1c0PWcGLwaoBLjoexTYgwkqMtJDinpENM3HIrO2pQMJ8TvZZuRppQPvdENvgheaCa_PgFuqG-xUjwEqMfI60ZEij0Xz1JqBjTlo6HRD_yrzb_4TLiPt2al5VDfcLaSvifyyKWtrjN5u0wvXpuFdmpE3Fgr3yKNWwWMtte76Ehp0ECAafBkWmr3iZ1mrXlhHdydsVMPRsZizCLwosYxIXzimUDpkeGS9CJ_4Ez9uIco3s2ae-Sma8gx0DW8GQAkgdXDl72xX4VqCDzhDYhGWYm54PY3SytNZxahxN2H-VCTLx0luNvo-yZdtxQd2CqJgqAEKse2Z7FLItU6vG_QVN2o.H8Jd-1hGGretkB0x_DL3LjklxuVJM1je4sGT1UeoV58",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..xLkGxEi2yBWG6LlZLwhEng.wteqIemtNsBXxqlglQrpLTp6aF7_kKvb_8x6lY5g6UewkE1IeJAjkWgCBX9qIat3d1-FDKFFeJ1hLipomcNJXVlMH9oyKGR0DqGbkWku0EidrCWeD4Eao4LmHcg2tZZ7uVSSGNP2TLxFjvNFUZr8wTtPZsfCcRAxH9ehddiq2oS75bONj0sz-KNs73Ek8Uij4bzzTT9RdQqkTGTcwy1eYCk-BNnBD84v3pjPQrSzNLLJq_mAytH3K-Ca8-3yuio5pk2QacHENC5E6UIiJSk94lwow7FyKFnkVsg0x48uMp_CEWVv8X-Ht8whCJRKTYlTFoTvuhcyV-i-ozbsQcAKTliKeLiz24zpH3itSNdNjxFoLRz3PuJUnWRMu92G2PWnFP6wP4IBhrlda8d2xNTuYysY8JQs6pJeCqwObSc-vCo.1KKpLElLhjCt2ZG3Sp1ACdolSwP_6zlp7HC6B5YusrM",
       "domain": "app.staging.dataflowgroup.com",
       "path": "/",
-      "expires": 1756016320.386786,
+      "expires": 1756545460.670263,
       "httpOnly": true,
       "secure": true,
       "sameSite": "Lax"
     },
     {
       "name": "rt",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..xZ3H-NYXIqEhHzJviiTMgA.1l0eeCyIaxYAMOVdW5bQaBp5-p-zZL-vP91LLHD2HyQfawk4FyejywsmhFlBuXqGYc6tJvaTjV2Ru7KizSVVbC2siFyN2eRihNcr80mXBM9B3Zmu12NrRbociGvRX4UmOE6o_2_-6dXVickN8B5_Eq-_3cJXIWEu1m-KVR0u2yNL4LNcIvyHjk8c_tldq6OoCcR4w_o3DKb3LOpByEtEZfzW6As0hmPHQ2TBGPe20y0.XCuWqUyNbliyd4V9MVqvZQnHZd0V_bqHabRwqtCQX2w",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIn0..iseXSIE_b2-4GfuoH6EacQ.-FWTM5gE-RCgmd9NjApV-c5UidoIYLTs2NXNH_OxI_aToWvylv3iHlWymcI6V1rfvTdJMSbFc15fAD6CDNkZwjUOOjIaPIXu_I7TU1VEuE_UpiZ4XMGKvzliWZKzS4fA1uqWrGuDe4bs5oZer_Nr81kpirJpCrDMxcxRquWYKVM0RVSFTbfkaLvqy3dF1e6jCA8-3SWG3mim-BktMPMOPwTNhpF-EwJV6nS_xdiXrE8.DmI0pSnVyLQ2IwCd76JhZsHB8GdDIo-kTzpUmiY34Mc",
       "domain": "app.staging.dataflowgroup.com",
       "path": "/",
-      "expires": 1771566520.386882,
+      "expires": 1772095660.670394,
       "httpOnly": true,
       "secure": true,
       "sameSite": "Lax"
+    },
+    {
+      "name": "cwr_s",
+      "value": "eyJzZXNzaW9uSWQiOiJiN2VkNjc2OC02Njg2LTQ5NTQtODY0OC0wZTRiOTI1YzBlZjkiLCJyZWNvcmQiOnRydWUsImV2ZW50Q291bnQiOjY0LCJwYWdlIjp7InBhZ2VJZCI6Ii9lbi9vbmJvYXJkaW5nL3NpZ25pbiIsImludGVyYWN0aW9uIjowLCJyZWZlcnJlciI6IiIsInJlZmVycmVyRG9tYWluIjoiIiwic3RhcnQiOjE3NTY1NDM2Mzk2MDB9fQ==",
+      "domain": ".app.staging.dataflowgroup.com",
+      "path": "/",
+      "expires": 1756545464,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
     }
   ],
-  "timestamp": 1756014551171
+  "timestamp": 1756543666526
 }

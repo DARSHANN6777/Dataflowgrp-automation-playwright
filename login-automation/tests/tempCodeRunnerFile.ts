@@ -377,109 +377,6 @@ async function handleReportTransferPage(page: any) {
   }
 }
 
-
-test('Create Verification Request', async ({ page }) => {
-  console.log('🚀 Starting Verification Request Test');
-  
-  const specificEmail = 'ndarshan+story47@dataflowgroup.com';
-  
-  // Try to load saved cookies first
-  const savedEmail = await loadCookies(page);
-  
-  if (savedEmail && savedEmail === specificEmail) {
-    console.log(`🍪 Using saved cookies for email: ${savedEmail}`);
-    
-    // Navigate directly to dashboard with cookies
-    console.log('🌐 Loading DataFlow dashboard with saved cookies...');
-    await page.goto('https://app.staging.dataflowgroup.com/en/dashboard/home');
-    
-    // Wait for page to fully load
-    await page.waitForLoadState('networkidle');
-    
-    // Check if we're actually logged in - look for elements that indicate successful login
-    try {
-      // Look for sidebar, user profile, or dashboard-specific elements
-      await page.waitForSelector('text="Home", text="Verifications", text="Start New Verification", .sidebar, [class*="sidebar"]', { timeout: 1000 });
-      console.log('✅ Dashboard loaded successfully with cookies - user is logged in');
-      
-      // Take screenshot to verify we're logged in
-      await page.screenshot({ path: 'logged-in-with-cookies.png' });
-      
-      // Skip to verification creation
-      await createVerificationRequest(page);
-      return; // IMPORTANT: Exit here, don't continue to login flow
-      
-    } catch (error) {
-      console.log('⚠️ Could not verify login state, checking URL...');
-      
-      // Secondary check - if we're on dashboard URL, assume login worked
-      const currentUrl = page.url();
-      if (currentUrl.includes('/dashboard')) {
-        console.log('✅ On dashboard URL, assuming cookies worked');
-        await createVerificationRequest(page);
-        return; // IMPORTANT: Exit here
-      }
-      
-      console.log('⚠️ Cookies may be invalid, proceeding with fresh login...');
-    }
-  } else {
-    console.log('🔄 No valid cookies found or different email, proceeding with fresh login...');
-  }
-  
-  // Fresh login process
-  console.log('🌐 Loading DataFlow login page for fresh authentication...');
-  await page.goto('https://app.staging.dataflowgroup.com/en/onboarding/signin');
-  
-  // Wait for page to fully load
-  await page.waitForLoadState('networkidle');
-  console.log('✅ Login page loaded successfully');
-  
-  // Fill the specific email
-  await page.getByPlaceholder('Enter email ID').fill(specificEmail);
-  console.log(`📧 Email filled: ${specificEmail}`);
-  
-  // Pause for manual captcha entry
-  console.log('👉 Please enter captcha manually, then press [Resume] in Playwright Inspector...');
-  await page.pause();
-  
-  // Continue with login flow
-  await page.getByText('I consent to receive marketing communications from DataFlow').click();
-  await page.getByRole('button', { name: 'Get OTP' }).click();
-  await page.waitForURL('**/verification/mobile');
-  console.log('✅ Redirected to OTP verification page');
-  
-  // Pause for manual OTP entry
-  console.log('👉 Please enter OTP manually, then press [Resume] in Playwright Inspector...');
-  await page.pause();
-  
-  // Wait for redirection to dashboard/home
-  console.log('⏳ Waiting for redirect to dashboard...');
-  await page.waitForFunction(() => {
-    return window.location.href.includes('/dashboard') || window.location.href.includes('/home');
-  }, { timeout: 5000 });
-  
-  const currentUrl = page.url();
-  console.log('➡️ Redirected to:', currentUrl);
-  
-  // Save cookies after successful login
-  await saveCookies(page, specificEmail);
-  console.log('✅ Login completed and cookies saved!');
-  
-  // Verify we're on the dashboard
-  await expect(page).toHaveURL(/.*dashboard.*/);
-  console.log('🔐 Authentication verified - we are logged in');
-  
-  // Proceed to create verification request
-  await createVerificationRequest(page);
-});
-
-// Helper function to wait for manual confirmation that loaders are done
-async function waitForManualConfirmation(page: any, message: string) {
-  console.log(`👉 ${message}`);
-  await page.pause();
-  console.log('✅ Manual confirmation received, continuing...');
-}
-
 // IMPROVED form filling function with better error handling and retries
 async function fillVerificationForm(page: any) {
   console.log('📋 Starting verification form process...');
@@ -1011,7 +908,7 @@ async function createVerificationRequest(page: any) {
     
     // Step 4: Fill the verification form dropdowns using the improved method
     await fillVerificationForm(page);
-
+    
     // Step 5: Handle report transfer page
     await handleReportTransferPage(page);
      
@@ -1373,12 +1270,181 @@ async function handlePricingEstimatePage(page) {
 }
 
 //CRL document page
-await handleClientRequirementsPage(page);
 
-async function handleClientRequirementsPage(page, options = {}) {
-  console.log('📋 Handling client requirements page...');
+// await handleClientRequirementsPage(page);
+
+// async function handleClientRequirementsPage(page, options = {}) {
+//   console.log('📋 Handling client requirements page...');
   
-  const { automate = false, uploadBothDocuments = false } = options;
+//   const { automate = false, uploadBothDocuments = false } = options;
+  
+//   await page.waitForLoadState('networkidle');
+  
+//   // Create dummy PDF file for testing
+//   const fs = require('fs');
+//   const dummyContent = '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\ntrailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n196\n%%EOF';
+//   fs.writeFileSync('dummy-document.pdf', dummyContent);
+//   console.log('📄 Created dummy PDF file for upload');
+  
+//   // Tick first two checkboxes
+//   const checkboxes = page.locator('input[type="checkbox"]');
+//   await checkboxes.nth(0).check();
+//   await checkboxes.nth(1).check();
+//   console.log('✅ Checkboxes ticked');
+  
+//   // Clear and fill company name field
+//   const companyField = page.locator('input').nth(2);
+//   await companyField.clear();
+//   await companyField.fill('automation company');
+//   console.log('✅ Company name filled');
+  
+//   // Handle date field
+//   if (automate) {
+//     try {
+//       await page.click('button:has-text("Select date")');
+//       await page.waitForTimeout(1000);
+//       await page.click('text="28"');
+//       console.log('✅ Date selected automatically');
+//     } catch (dateError) {
+//       console.log('⚠️ Automated date selection failed, falling back to manual');
+//       await handleDateManually(page);
+//     }
+//   } else {
+//     await handleDateManually(page);
+//   }
+  
+//   // Handle file uploads
+//   await handleFileUploads(page, uploadBothDocuments);
+  
+//   // Click Continue
+//   try {
+//     await page.click('button:has-text("Continue")');
+//     await page.waitForLoadState('networkidle');
+//     console.log('✅ Client requirements completed');
+//   } catch (continueError) {
+//     console.log('⚠️ Continue button click failed:', continueError.message);
+//     if (!automate) {
+//       console.log('👉 Please manually click Continue button, then press Resume');
+//       await page.pause();
+//     }
+//   }
+// }
+
+// // Helper function for manual date handling
+// async function handleDateManually(page) {
+//   console.log('📅 Please manually select the date of birth (March 21, 2024 or your preferred date)');
+//   console.log('👉 Click on the date field and select the appropriate date, then press Resume to continue');
+//   await page.pause();
+// }
+
+// // Helper function for file uploads
+// async function handleFileUploads(page, uploadBothDocuments) {
+//   console.log('📤 Starting document upload process...');
+  
+//   try {
+//     await page.waitForTimeout(2000);
+    
+//     // Upload Oman Civil ID (optional)
+//     if (uploadBothDocuments) {
+//       await uploadOmanCivilId(page);
+//     }
+    
+//     // Upload Experience document (required)
+//     await uploadExperienceDocument(page);
+    
+//     console.log('📤 Document upload process completed');
+    
+//   } catch (uploadError) {
+//     console.log('Upload error:', uploadError.message);
+//     console.log('Upload automation failed, but continuing...');
+//   }
+// }
+
+// // Helper function for Oman Civil ID upload
+// async function uploadOmanCivilId(page) {
+//   console.log('Uploading Oman Civil ID document...');
+  
+//   try {
+//     const firstUploadInput = page.locator('input[type="file"]').first();
+//     await firstUploadInput.setInputFiles('./dummy-document.pdf');
+//     console.log('Oman Civil ID document uploaded');
+//   } catch (error) {
+//     console.log('Oman Civil ID upload failed:', error.message);
+//   }
+  
+//   await page.waitForTimeout(1000);
+// }
+
+// // Helper function for Experience document upload
+// async function uploadExperienceDocument(page) {
+//   console.log(' Uploading Experience document...');
+  
+//   try {
+//     // Try multiple approaches to find and click the Upload button
+//     let uploadButtonClicked = false;
+    
+//     // Method 1: Target specific Experience Upload button
+//     const experienceUploadBtn = page.locator('button:has-text("Upload")').last();
+//     if (await experienceUploadBtn.isVisible()) {
+//       await experienceUploadBtn.click();
+//       uploadButtonClicked = true;
+//       console.log('Clicked Experience Upload button');
+//     }
+    
+//     // Method 2: Use CSS class selector as fallback
+//     if (!uploadButtonClicked) {
+//       const uploadByClass = page.locator('.downloadUpload-module_button__-uMBo').last();
+//       if (await uploadByClass.isVisible()) {
+//         await uploadByClass.click();
+//         uploadButtonClicked = true;
+//         console.log('Clicked Upload button using CSS class');
+//       }
+//     }
+    
+//     if (uploadButtonClicked) {
+//       await page.waitForTimeout(1500);
+      
+//       // Upload file to the last file input (Experience)
+//       const fileInput = page.locator('input[type="file"]').last();
+//       await fileInput.setInputFiles('./dummy-document.pdf');
+//       console.log('✅ Experience document uploaded successfully');
+//     } else {
+//       // Direct approach as final fallback
+//       const fileInput = page.locator('input[type="file"]').last();
+//       await fileInput.setInputFiles('./dummy-document.pdf');
+//       console.log('✅ Experience document uploaded via direct method');
+//     }
+    
+//   } catch (error) {
+//     console.log('Experience upload failed:', error.message);
+//     throw error;
+//   }
+  
+//   await page.waitForTimeout(1500);
+// }
+
+// await handleCRLGroupName2Page(page);
+
+// async function handleCRLGroupName2Page(page) {
+//   console.log(' Handling CRL Group Name 2 page...');
+  
+//   await page.waitForLoadState('networkidle');
+  
+//   // Click the checkbox
+//   await page.click('input[type="checkbox"]');
+//   console.log('Checkbox clicked');
+  
+//   // Click Continue
+//   await page.click('button:has-text("Continue")');
+//   await page.waitForLoadState('networkidle');
+  
+//   console.log('CRL Group Name 2 completed');
+// }
+
+await handleCrlPage(page);
+
+async function handleCrlPage(page) {
+  console.log('📋 Handling Application Details page...');
   
   await page.waitForLoadState('networkidle');
   
@@ -1388,159 +1454,116 @@ async function handleClientRequirementsPage(page, options = {}) {
   fs.writeFileSync('dummy-document.pdf', dummyContent);
   console.log('📄 Created dummy PDF file for upload');
   
-  // Tick first two checkboxes
-  const checkboxes = page.locator('input[type="checkbox"]');
-  await checkboxes.nth(0).check();
-  await checkboxes.nth(1).check();
-  console.log('✅ Checkboxes ticked');
-  
-  // Clear and fill company name field
-  const companyField = page.locator('input').nth(2);
-  await companyField.clear();
-  await companyField.fill('automation company');
-  console.log('✅ Company name filled');
-  
-  // Handle date field
-  if (automate) {
-    try {
-      await page.click('button:has-text("Select date")');
-      await page.waitForTimeout(1000);
-      await page.click('text="28"');
-      console.log('✅ Date selected automatically');
-    } catch (dateError) {
-      console.log('⚠️ Automated date selection failed, falling back to manual');
-      await handleDateManually(page);
-    }
-  } else {
-    await handleDateManually(page);
-  }
-  
-  // Handle file uploads
-  await handleFileUploads(page, uploadBothDocuments);
-  
-  // Click Continue
   try {
-    await page.click('button:has-text("Continue")');
-    await page.waitForLoadState('networkidle');
-    console.log('✅ Client requirements completed');
-  } catch (continueError) {
-    console.log('⚠️ Continue button click failed:', continueError.message);
-    if (!automate) {
-      console.log('👉 Please manually click Continue button, then press Resume');
-      await page.pause();
-    }
-  }
-}
-
-// Helper function for manual date handling
-async function handleDateManually(page) {
-  console.log('📅 Please manually select the date of birth (March 21, 2024 or your preferred date)');
-  console.log('👉 Click on the date field and select the appropriate date, then press Resume to continue');
-  await page.pause();
-}
-
-// Helper function for file uploads
-async function handleFileUploads(page, uploadBothDocuments) {
-  console.log('📤 Starting document upload process...');
-  
-  try {
+    // Fill Company Name field only
     await page.waitForTimeout(2000);
     
-    // Upload Oman Civil ID (optional)
-    if (uploadBothDocuments) {
-      await uploadOmanCivilId(page);
+    let companyFieldFilled = false;
+    
+    // Strategy 1: Target by label and find the associated input
+    try {
+      await page.click('text="Company Name"');
+      await page.waitForTimeout(500);
+      const companyInput = page.locator('input').first();
+      await companyInput.fill('Automation company');
+      console.log('✅ Company name filled using label click method');
+      companyFieldFilled = true;
+    } catch (e1) {
+      console.log('Strategy 1 failed:', e1.message);
     }
     
-    // Upload Experience document (required)
-    await uploadExperienceDocument(page);
-    
-    console.log('📤 Document upload process completed');
-    
-  } catch (uploadError) {
-    console.log('Upload error:', uploadError.message);
-    console.log('Upload automation failed, but continuing...');
-  }
-}
-
-// Helper function for Oman Civil ID upload
-async function uploadOmanCivilId(page) {
-  console.log('Uploading Oman Civil ID document...');
-  
-  try {
-    const firstUploadInput = page.locator('input[type="file"]').first();
-    await firstUploadInput.setInputFiles('./dummy-document.pdf');
-    console.log('Oman Civil ID document uploaded');
-  } catch (error) {
-    console.log('Oman Civil ID upload failed:', error.message);
-  }
-  
-  await page.waitForTimeout(1000);
-}
-
-// Helper function for Experience document upload
-async function uploadExperienceDocument(page) {
-  console.log(' Uploading Experience document...');
-  
-  try {
-    // Try multiple approaches to find and click the Upload button
-    let uploadButtonClicked = false;
-    
-    // Method 1: Target specific Experience Upload button
-    const experienceUploadBtn = page.locator('button:has-text("Upload")').last();
-    if (await experienceUploadBtn.isVisible()) {
-      await experienceUploadBtn.click();
-      uploadButtonClicked = true;
-      console.log('Clicked Experience Upload button');
-    }
-    
-    // Method 2: Use CSS class selector as fallback
-    if (!uploadButtonClicked) {
-      const uploadByClass = page.locator('.downloadUpload-module_button__-uMBo').last();
-      if (await uploadByClass.isVisible()) {
-        await uploadByClass.click();
-        uploadButtonClicked = true;
-        console.log('Clicked Upload button using CSS class');
+    // Strategy 2: Direct input targeting
+    if (!companyFieldFilled) {
+      try {
+        const inputs = await page.locator('input').all();
+        if (inputs.length > 0) {
+          await inputs[0].clear();
+          await inputs[0].fill('Automation company');
+          console.log('✅ Company name filled using first input');
+          companyFieldFilled = true;
+        }
+      } catch (e2) {
+        console.log('Strategy 2 failed:', e2.message);
       }
     }
     
-    if (uploadButtonClicked) {
-      await page.waitForTimeout(1500);
-      
-      // Upload file to the last file input (Experience)
-      const fileInput = page.locator('input[type="file"]').last();
-      await fileInput.setInputFiles('./dummy-document.pdf');
-      console.log('✅ Experience document uploaded successfully');
+    // Strategy 3: Click on the empty field area
+    if (!companyFieldFilled) {
+      try {
+        await page.click('input:first-of-type');
+        await page.keyboard.type('Automation company');
+        console.log('✅ Company name filled using keyboard type');
+        companyFieldFilled = true;
+      } catch (e3) {
+        console.log('Strategy 3 failed:', e3.message);
+      }
+    }
+    
+    if (!companyFieldFilled) {
+      console.log('⚠️ All Company Name strategies failed');
+    }
+    
+    await page.waitForTimeout(1000);
+    
+    // Handle document upload using the specific CSS class
+    await handleDocumentUpload(page);
+    
+    // Wait a moment for any processing
+    await page.waitForTimeout(2000);
+    
+    // Click Continue button
+    const continueButton = page.locator('button:has-text("Continue")');
+    if (await continueButton.isVisible()) {
+      await continueButton.click();
+      await page.waitForLoadState('networkidle');
+      console.log('✅ Application Details completed successfully');
     } else {
-      // Direct approach as final fallback
-      const fileInput = page.locator('input[type="file"]').last();
-      await fileInput.setInputFiles('./dummy-document.pdf');
-      console.log('✅ Experience document uploaded via direct method');
+      console.log('⚠️ Continue button not found, please manually proceed');
     }
     
   } catch (error) {
-    console.log('Experience upload failed:', error.message);
-    throw error;
+    console.log('⚠️ Error in handling Application Details:', error.message);
+    console.log('👉 Please manually complete the form and press Resume to continue');
+    await page.pause();
   }
-  
-  await page.waitForTimeout(1500);
 }
 
-await handleCRLGroupName2Page(page);
-
-async function handleCRLGroupName2Page(page) {
-  console.log(' Handling CRL Group Name 2 page...');
+// Helper function to handle document upload
+async function handleDocumentUpload(page) {
+  console.log('📤 Starting document upload...');
   
-  await page.waitForLoadState('networkidle');
-  
-  // Click the checkbox
-  await page.click('input[type="checkbox"]');
-  console.log('Checkbox clicked');
-  
-  // Click Continue
-  await page.click('button:has-text("Continue")');
-  await page.waitForLoadState('networkidle');
-  
-  console.log('CRL Group Name 2 completed');
+  try {
+    await page.waitForTimeout(1000);
+    
+    // Click the upload button using the specific CSS class
+    const uploadButton = page.locator('.downloadUpload-module_button__-uMBo');
+    if (await uploadButton.isVisible()) {
+      await uploadButton.click();
+      console.log('📤 Clicked Upload button using CSS class');
+      await page.waitForTimeout(2000);
+      
+      // Now upload the file
+      const fileInput = page.locator('input[type="file"]').first();
+      await fileInput.setInputFiles('./dummy-document.pdf');
+      console.log('✅ Document uploaded successfully');
+      
+      // Wait for upload to complete
+      await page.waitForTimeout(3000);
+      
+    } else {
+      console.log('⚠️ Upload button not found with CSS class');
+      
+      // Fallback: try direct file input
+      const fileInput = page.locator('input[type="file"]').first();
+      await fileInput.setInputFiles('./dummy-document.pdf');
+      console.log('✅ Document uploaded via fallback method');
+      await page.waitForTimeout(3000);
+    }
+    
+  } catch (uploadError) {
+    console.log('⚠️ Document upload failed:', uploadError.message);
+    console.log('👉 Please manually upload a document');
+  }
 }
 
 // Handle Upload Document - Identity page (NEW)
@@ -2069,13 +2092,6 @@ async function saveAndContinueIdentity(page) {
   }
 }
 
-// Call this function when you reach the Degree/Diploma page
-await fillDegreeDiplomaFormDetails(page);
-
-// After manual completion of dates and file uploads
-await saveAndContinueDegreeDiploma(page);
-
-// Helper function to fill degree/diploma form details
 // Function call for Degree/Diploma component page
 await handleDegreeDiplomaPage(page);
 
