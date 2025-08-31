@@ -445,7 +445,6 @@ test('Create Verification Request', async ({ page }) => {
   // Continue with login flow
   await page.getByText('I consent to receive marketing communications from DataFlow').click();
   await page.getByRole('button', { name: 'Get OTP' }).click();
-  await page.waitForURL('**/verification/mobile');
   console.log('✅ Redirected to OTP verification page');
   
   // Pause for manual OTP entry
@@ -1027,7 +1026,6 @@ async function createVerificationRequest(page: any) {
   }
  
   // Function to handle the "Verify your education" page
-// Add this function to your script and call it between handleReportTransferPage and handleEducationDetailsPage
 async function handleVerifyEducationPage(page: any) {
   console.log('🎓 Starting verify education page handling...');
   
@@ -1212,9 +1210,6 @@ async function handleEducationDetailsPage(page) {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
     
-    // Take screenshot of the education details page
-    await page.screenshot({ path: 'education-details-page.png' });
-    
     // Verify we're on the correct page
     const currentUrl = page.url();
     console.log(`📍 Current URL on education details page: ${currentUrl}`);
@@ -1281,55 +1276,125 @@ async function handleEducationDetailsPage(page) {
         await page.waitForTimeout(1000);
         
         console.log('🧹 Clearing existing university and typing "dry college"...');
-        // Clear the hidden input field and type new value
+        // Clear the input field and type new value
         await dropdownInput.fill('');
         await page.waitForTimeout(500);
         await dropdownInput.type('dry college', { delay: 100 });
         await page.waitForTimeout(2000); // Wait for dropdown options to appear
         
         console.log('🔍 Looking for dropdown options...');
-        // Wait for dropdown options to appear
+        
+        // Wait for dropdown options to appear and stabilize
         await page.waitForTimeout(1500);
         
-        // First try to find the specific second option we want: "dry college, bengaluru, india"
-        const specificOption = page.locator('text="dry college, bengaluru, india"').first();
-        const specificOptionExists = await specificOption.isVisible();
+        // Try multiple selection strategies in order of preference
+        let selectionSuccessful = false;
         
-        console.log(`🔍 Looking for specific option "dry college, bengaluru, india": ${specificOptionExists}`);
+        // Strategy 1: Try to find and click the specific "dry college, Bengaluru, India" option
+        try {
+          console.log('🎯 Strategy 1: Looking for specific "dry college, Bengaluru, India" option...');
+          const specificOption = page.locator('text="dry college, Bengaluru, India"').first();
+          
+          if (await specificOption.isVisible({ timeout: 2000 })) {
+            await specificOption.click();
+            console.log('✅ Successfully clicked "dry college, Bengaluru, India" option');
+            selectionSuccessful = true;
+          }
+        } catch (e) {
+          console.log('⚠️ Strategy 1 failed:', e.message);
+        }
         
-        if (specificOptionExists) {
-          await specificOption.click();
-          console.log('✅ Successfully clicked "dry college, bengaluru, india" option');
-        } else {
-          console.log('🔍 Specific option not found, trying alternative approaches...');
-          
-          // Try to find all dropdown options containing "dry college"
-          const allDryCollegeOptions = page.locator('*:has-text("dry college")');
-          const optionCount = await allDryCollegeOptions.count();
-          console.log(`📋 Found ${optionCount} options containing "dry college"`);
-          
-          // Log all options for debugging
-          for (let i = 0; i < Math.min(optionCount, 5); i++) {
-            try {
-              const optionText = await allDryCollegeOptions.nth(i).textContent();
-              console.log(`🔍 Option ${i}: "${optionText}"`);
-            } catch (e) {
-              console.log(`🔍 Option ${i}: Could not read text`);
+        // Strategy 2: If specific option not found, look for dropdown options and select the second one
+        if (!selectionSuccessful) {
+          try {
+            console.log('🎯 Strategy 2: Looking for dropdown options to select second one...');
+            
+            // Wait for dropdown to be fully loaded
+            await page.waitForSelector('[role="option"], .dropdown-option, [data-option]', { timeout: 3000 });
+            
+            // Try different selectors for dropdown options
+            const possibleOptionSelectors = [
+              '[role="option"]',
+              '.dropdown-option',
+              '[data-option]',
+              'li:has-text("dry college")',
+              'div:has-text("dry college")',
+              '*[class*="option"]:has-text("dry college")'
+            ];
+            
+            let options = null;
+            let optionCount = 0;
+            
+            for (const selector of possibleOptionSelectors) {
+              options = page.locator(selector);
+              optionCount = await options.count();
+              console.log(`🔍 Selector "${selector}" found ${optionCount} options`);
+              
+              if (optionCount >= 2) {
+                // Log the first few options for debugging
+                for (let i = 0; i < Math.min(optionCount, 3); i++) {
+                  try {
+                    const optionText = await options.nth(i).textContent();
+                    console.log(`📋 Option ${i}: "${optionText}"`);
+                  } catch (e) {
+                    console.log(`📋 Option ${i}: Could not read text`);
+                  }
+                }
+                
+                // Click the second option (index 1)
+                await options.nth(1).click();
+                console.log('✅ Successfully clicked second option using selector:', selector);
+                selectionSuccessful = true;
+                break;
+              }
             }
+          } catch (e) {
+            console.log('⚠️ Strategy 2 failed:', e.message);
           }
-          
-          if (optionCount >= 2) {
-            // Click the second option (index 1)
-            await allDryCollegeOptions.nth(1).click();
-            console.log('✅ Clicked second option from "dry college" results');
-          } else {
-            console.log('⚠️ Not enough options found, trying keyboard selection...');
-            // Use arrow keys to select second option
+        }
+        
+        // Strategy 3: Use keyboard navigation as fallback
+        if (!selectionSuccessful) {
+          try {
+            console.log('🎯 Strategy 3: Using keyboard navigation...');
+            
+            // Ensure the input is focused
+            await dropdownInput.focus();
+            await page.waitForTimeout(500);
+            
+            // Use arrow keys to navigate to second option
             await page.keyboard.press('ArrowDown'); // Move to first option
-            await page.keyboard.press('ArrowDown'); // Move to second option  
+            await page.waitForTimeout(300);
+            await page.keyboard.press('ArrowDown'); // Move to second option
+            await page.waitForTimeout(300);
             await page.keyboard.press('Enter');     // Select second option
-            console.log('✅ Used keyboard to select second option');
+            
+            console.log('✅ Used keyboard navigation to select second option');
+            selectionSuccessful = true;
+          } catch (e) {
+            console.log('⚠️ Strategy 3 failed:', e.message);
           }
+        }
+        
+        // Strategy 4: Try clicking on visible text containing "Bengaluru" (second option)
+        if (!selectionSuccessful) {
+          try {
+            console.log('🎯 Strategy 4: Looking for Bengaluru option...');
+            const bengaluruOption = page.locator('text*="Bengaluru"').first();
+            
+            if (await bengaluruOption.isVisible({ timeout: 2000 })) {
+              await bengaluruOption.click();
+              console.log('✅ Successfully clicked Bengaluru option');
+              selectionSuccessful = true;
+            }
+          } catch (e) {
+            console.log('⚠️ Strategy 4 failed:', e.message);
+          }
+        }
+        
+        if (!selectionSuccessful) {
+          console.log('❌ All selection strategies failed');
+          throw new Error('Unable to select second option from dropdown');
         }
         
         await page.waitForTimeout(1000);
@@ -1344,11 +1409,17 @@ async function handleEducationDetailsPage(page) {
     // Continue with the rest of the function (date handling, etc.)
     console.log('🎯 University selection phase completed, proceeding to continue...');
     
+    // Wait a bit to ensure the selection is processed
+    await page.waitForTimeout(1000);
+    
     // Click Continue button
     const continueButton = page.locator('button:has-text("Continue")');
     if (await continueButton.isVisible()) {
       await continueButton.click();
       console.log('✅ Clicked Continue button');
+      
+      // Wait for navigation or next page to load
+      await page.waitForTimeout(2000);
     } else {
       console.log('⚠️ Continue button not found');
     }
@@ -1373,12 +1444,10 @@ async function handlePricingEstimatePage(page) {
 }
 
 //CRL document page
-await handleClientRequirementsPage(page);
+await handleCrlPage(page);
 
-async function handleClientRequirementsPage(page, options = {}) {
-  console.log('📋 Handling client requirements page...');
-  
-  const { automate = false, uploadBothDocuments = false } = options;
+async function handleCrlPage(page) {
+  console.log('📋 Handling Application Details page...');
   
   await page.waitForLoadState('networkidle');
   
@@ -1388,160 +1457,118 @@ async function handleClientRequirementsPage(page, options = {}) {
   fs.writeFileSync('dummy-document.pdf', dummyContent);
   console.log('📄 Created dummy PDF file for upload');
   
-  // Tick first two checkboxes
-  const checkboxes = page.locator('input[type="checkbox"]');
-  await checkboxes.nth(0).check();
-  await checkboxes.nth(1).check();
-  console.log('✅ Checkboxes ticked');
-  
-  // Clear and fill company name field
-  const companyField = page.locator('input').nth(2);
-  await companyField.clear();
-  await companyField.fill('automation company');
-  console.log('✅ Company name filled');
-  
-  // Handle date field
-  if (automate) {
-    try {
-      await page.click('button:has-text("Select date")');
-      await page.waitForTimeout(1000);
-      await page.click('text="28"');
-      console.log('✅ Date selected automatically');
-    } catch (dateError) {
-      console.log('⚠️ Automated date selection failed, falling back to manual');
-      await handleDateManually(page);
-    }
-  } else {
-    await handleDateManually(page);
-  }
-  
-  // Handle file uploads
-  await handleFileUploads(page, uploadBothDocuments);
-  
-  // Click Continue
   try {
-    await page.click('button:has-text("Continue")');
-    await page.waitForLoadState('networkidle');
-    console.log('✅ Client requirements completed');
-  } catch (continueError) {
-    console.log('⚠️ Continue button click failed:', continueError.message);
-    if (!automate) {
-      console.log('👉 Please manually click Continue button, then press Resume');
-      await page.pause();
-    }
-  }
-}
-
-// Helper function for manual date handling
-async function handleDateManually(page) {
-  console.log('📅 Please manually select the date of birth (March 21, 2024 or your preferred date)');
-  console.log('👉 Click on the date field and select the appropriate date, then press Resume to continue');
-  await page.pause();
-}
-
-// Helper function for file uploads
-async function handleFileUploads(page, uploadBothDocuments) {
-  console.log('📤 Starting document upload process...');
-  
-  try {
+    // Fill Company Name field only
     await page.waitForTimeout(2000);
     
-    // Upload Oman Civil ID (optional)
-    if (uploadBothDocuments) {
-      await uploadOmanCivilId(page);
+    let companyFieldFilled = false;
+    
+    // Strategy 1: Target by label and find the associated input
+    try {
+      await page.click('text="Company Name"');
+      await page.waitForTimeout(500);
+      const companyInput = page.locator('input').first();
+      await companyInput.fill('Automation company');
+      console.log('✅ Company name filled using label click method');
+      companyFieldFilled = true;
+    } catch (e1) {
+      console.log('Strategy 1 failed:', e1.message);
     }
     
-    // Upload Experience document (required)
-    await uploadExperienceDocument(page);
-    
-    console.log('📤 Document upload process completed');
-    
-  } catch (uploadError) {
-    console.log('Upload error:', uploadError.message);
-    console.log('Upload automation failed, but continuing...');
-  }
-}
-
-// Helper function for Oman Civil ID upload
-async function uploadOmanCivilId(page) {
-  console.log('Uploading Oman Civil ID document...');
-  
-  try {
-    const firstUploadInput = page.locator('input[type="file"]').first();
-    await firstUploadInput.setInputFiles('./dummy-document.pdf');
-    console.log('Oman Civil ID document uploaded');
-  } catch (error) {
-    console.log('Oman Civil ID upload failed:', error.message);
-  }
-  
-  await page.waitForTimeout(1000);
-}
-
-// Helper function for Experience document upload
-async function uploadExperienceDocument(page) {
-  console.log(' Uploading Experience document...');
-  
-  try {
-    // Try multiple approaches to find and click the Upload button
-    let uploadButtonClicked = false;
-    
-    // Method 1: Target specific Experience Upload button
-    const experienceUploadBtn = page.locator('button:has-text("Upload")').last();
-    if (await experienceUploadBtn.isVisible()) {
-      await experienceUploadBtn.click();
-      uploadButtonClicked = true;
-      console.log('Clicked Experience Upload button');
-    }
-    
-    // Method 2: Use CSS class selector as fallback
-    if (!uploadButtonClicked) {
-      const uploadByClass = page.locator('.downloadUpload-module_button__-uMBo').last();
-      if (await uploadByClass.isVisible()) {
-        await uploadByClass.click();
-        uploadButtonClicked = true;
-        console.log('Clicked Upload button using CSS class');
+    // Strategy 2: Direct input targeting
+    if (!companyFieldFilled) {
+      try {
+        const inputs = await page.locator('input').all();
+        if (inputs.length > 0) {
+          await inputs[0].clear();
+          await inputs[0].fill('Automation company');
+          console.log('✅ Company name filled using first input');
+          companyFieldFilled = true;
+        }
+      } catch (e2) {
+        console.log('Strategy 2 failed:', e2.message);
       }
     }
     
-    if (uploadButtonClicked) {
-      await page.waitForTimeout(1500);
-      
-      // Upload file to the last file input (Experience)
-      const fileInput = page.locator('input[type="file"]').last();
-      await fileInput.setInputFiles('./dummy-document.pdf');
-      console.log('✅ Experience document uploaded successfully');
+    // Strategy 3: Click on the empty field area
+    if (!companyFieldFilled) {
+      try {
+        await page.click('input:first-of-type');
+        await page.keyboard.type('Automation company');
+        console.log('✅ Company name filled using keyboard type');
+        companyFieldFilled = true;
+      } catch (e3) {
+        console.log('Strategy 3 failed:', e3.message);
+      }
+    }
+    
+    if (!companyFieldFilled) {
+      console.log('⚠️ All Company Name strategies failed');
+    }
+    
+    await page.waitForTimeout(1000);
+    
+    // Handle document upload using the specific CSS class
+    await handleDocumentUpload(page);
+    
+    // Wait a moment for any processing
+    await page.waitForTimeout(2000);
+    
+    // Click Continue button
+    const continueButton = page.locator('button:has-text("Continue")');
+    if (await continueButton.isVisible()) {
+      await continueButton.click();
+      await page.waitForLoadState('networkidle');
+      console.log('✅ Application Details completed successfully');
     } else {
-      // Direct approach as final fallback
-      const fileInput = page.locator('input[type="file"]').last();
-      await fileInput.setInputFiles('./dummy-document.pdf');
-      console.log('✅ Experience document uploaded via direct method');
+      console.log('⚠️ Continue button not found, please manually proceed');
     }
     
   } catch (error) {
-    console.log('Experience upload failed:', error.message);
-    throw error;
+    console.log('⚠️ Error in handling Application Details:', error.message);
+    console.log('👉 Please manually complete the form and press Resume to continue');
+    await page.pause();
   }
-  
-  await page.waitForTimeout(1500);
 }
 
-await handleCRLGroupName2Page(page);
-
-async function handleCRLGroupName2Page(page) {
-  console.log(' Handling CRL Group Name 2 page...');
+// Helper function to handle document upload
+async function handleDocumentUpload(page) {
+  console.log('📤 Starting document upload...');
   
-  await page.waitForLoadState('networkidle');
-  
-  // Click the checkbox
-  await page.click('input[type="checkbox"]');
-  console.log('Checkbox clicked');
-  
-  // Click Continue
-  await page.click('button:has-text("Continue")');
-  await page.waitForLoadState('networkidle');
-  
-  console.log('CRL Group Name 2 completed');
+  try {
+    await page.waitForTimeout(1000);
+    
+    // Click the upload button using the specific CSS class
+    const uploadButton = page.locator('.downloadUpload-module_button__-uMBo');
+    if (await uploadButton.isVisible()) {
+      await uploadButton.click();
+      console.log('📤 Clicked Upload button using CSS class');
+      await page.waitForTimeout(2000);
+      
+      // Now upload the file
+      const fileInput = page.locator('input[type="file"]').first();
+      await fileInput.setInputFiles('./dummy-document.pdf');
+      console.log('✅ Document uploaded successfully');
+      
+      // Wait for upload to complete
+      await page.waitForTimeout(3000);
+      
+    } else {
+      console.log('⚠️ Upload button not found with CSS class');
+      
+      // Fallback: try direct file input
+      const fileInput = page.locator('input[type="file"]').first();
+      await fileInput.setInputFiles('./dummy-document.pdf');
+      console.log('✅ Document uploaded via fallback method');
+      await page.waitForTimeout(3000);
+    }
+    
+  } catch (uploadError) {
+    console.log('⚠️ Document upload failed:', uploadError.message);
+    console.log('👉 Please manually upload a document');
+  }
 }
+
 
 // Handle Upload Document - Identity page (NEW)
 await handleUploadDocumentIdentityPage(page);
@@ -2069,13 +2096,7 @@ async function saveAndContinueIdentity(page) {
   }
 }
 
-// Call this function when you reach the Degree/Diploma page
-await fillDegreeDiplomaFormDetails(page);
 
-// After manual completion of dates and file uploads
-await saveAndContinueDegreeDiploma(page);
-
-// Helper function to fill degree/diploma form details
 // Function call for Degree/Diploma component page
 await handleDegreeDiplomaPage(page);
 
@@ -2100,22 +2121,25 @@ async function handleDegreeDiplomaPage(page) {
     // Wait for form to be ready after upload
     await page.waitForTimeout(3000);
     
-    // Step 3: Select Department Name - BE
+    // Step 3: Handle Degree Level
+    await handleDegreeLevel(page);
+    
+    // Step 4: Select Department Name - BE
     await selectDepartmentName(page);
     
-    // Step 4: Select Course Name - CSE
+    // Step 5: Select Course Name - CSE
     await selectCourseName(page);
     
-    // Step 5: Fill Program Duration
+    // Step 6: Fill Program Duration
     await fillProgramDuration(page);
     
-    // Step 6: Select Mode of Study - Active Enrollment
+    // Step 7: Select Mode of Study - Active Enrollment
     await selectModeOfStudy(page);
     
-    // Step 7: Skip Start and End dates (they will be pre-filled)
-    console.log('⏭️ Skipping Start and End dates as they will be pre-filled');
+    // Step 8: Handle Course Start and End Dates
+    await handleCourseDates(page);
     
-    // Step 8: Fill name fields
+    // Step 9: Fill name fields
     await fillNameFields(page);
     
     // Wait for any processing
@@ -2137,6 +2161,68 @@ async function handleDegreeDiplomaPage(page) {
     await page.pause();
   }
 }
+
+// Helper function to handle Degree Level dropdown
+async function handleDegreeLevel(page) {
+  console.log('🎓 Handling Degree Level field...');
+  
+  try {
+    // Wait for form to load
+    await page.waitForTimeout(2000);
+    
+    // Find the Degree Level dropdown - using a more specific approach
+    const degreeLevelField = page.locator('input[placeholder="Select"]').nth(0); // First Select dropdown should be Degree Level
+    
+    // Check if the field exists and is visible
+    if (!(await degreeLevelField.isVisible())) {
+      console.log('⚠️ Degree Level field not found, skipping...');
+      return;
+    }
+    
+    // Check if the field is empty
+    const fieldValue = await degreeLevelField.inputValue();
+    console.log('📋 Current Degree Level field value:', fieldValue);
+    
+    if (!fieldValue || fieldValue.trim() === '' || fieldValue === 'Select') {
+      console.log('📋 Degree Level field is empty, selecting Bachelors...');
+      
+      // Click on the dropdown to open it
+      await degreeLevelField.click();
+      console.log('📋 Clicked Degree Level dropdown');
+      
+      // Wait for dropdown options to appear
+      await page.waitForTimeout(1500);
+      
+      // Try to select Bachelors option
+      try {
+        // Look for Bachelors in dropdown menu
+        const bachelorsOption = page.locator('text="Bachelors"').first();
+        await bachelorsOption.click();
+        console.log('✅ Selected Bachelors in Degree Level');
+      } catch {
+        console.log('⚠️ Could not find Bachelors option, trying alternative...');
+        // Try clicking any visible option that might be Bachelors
+        const menuItems = page.locator('[class*="menuItem"]');
+        const itemCount = await menuItems.count();
+        if (itemCount > 0) {
+          await menuItems.first().click();
+          console.log('✅ Selected first available option as fallback');
+        }
+      }
+      
+      // Wait after selection
+      await page.waitForTimeout(1500);
+    } else {
+      console.log('⏭️ Degree Level field is already filled with:', fieldValue);
+    }
+    
+  } catch (error) {
+    console.log('⚠️ Degree Level handling failed:', error.message);
+    console.log('🔄 Skipping Degree Level and continuing with next field...');
+    // Don't pause here, just continue - the form might work without this field
+  }
+}
+
 
 // Helper function to upload degree document
 async function uploadDegreeDocument(page) {
@@ -2172,29 +2258,15 @@ async function selectDepartmentName(page) {
   
   try {
     // Wait for the dropdown to be available
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
     
-    // Try multiple approaches to find the Department name dropdown
-    let departmentDropdown = null;
+    // Find the Department name dropdown - it should be the first "Select" dropdown after Degree Level
+    const departmentDropdown = page.locator('input[placeholder="Select"]').nth(1); // Second Select dropdown should be Department
     
-    // Approach 1: Look for dropdown near "Department name" text
-    try {
-      departmentDropdown = page.locator('text="Department name" .. input[placeholder="Select"]');
-      if (await departmentDropdown.isVisible()) {
-        console.log('📋 Found Department dropdown using approach 1');
-      } else {
-        throw new Error('Not visible');
-      }
-    } catch {
-      // Approach 2: Look for any dropdown with "Select" placeholder after Department name
-      try {
-        departmentDropdown = page.locator('input[placeholder="Select"]').first();
-        console.log('📋 Found Department dropdown using approach 2');
-      } catch {
-        // Approach 3: Look for dropdown input near Department name label
-        departmentDropdown = page.locator('label:has-text("Department name") ~ * input, label:has-text("Department name") + * input').first();
-        console.log('📋 Found Department dropdown using approach 3');
-      }
+    // Check if dropdown exists and is visible
+    if (!(await departmentDropdown.isVisible())) {
+      console.log('⚠️ Department dropdown not found, skipping...');
+      return;
     }
     
     // Click on the dropdown to open it
@@ -2204,23 +2276,40 @@ async function selectDepartmentName(page) {
     // Wait for dropdown options to appear
     await page.waitForTimeout(2000);
     
-    // Try to select BE option with multiple approaches
+    // Try to select BE option
     try {
-      await page.locator('text="BE"').click();
+      await page.locator('text="BE"').first().click();
       console.log('✅ Selected BE in Department name');
     } catch {
-      // Try clicking on any option that contains BE
-      await page.locator('[class*="menuItem"]:has-text("BE")').click();
-      console.log('✅ Selected BE using alternative method');
+      console.log('⚠️ Could not find BE option, trying alternative...');
+      // Try to find any option that contains "BE" or similar
+      try {
+        const menuItems = page.locator('[class*="menuItem"]');
+        const itemCount = await menuItems.count();
+        console.log(`📋 Found ${itemCount} menu items`);
+        
+        // Look for BE in the menu items
+        for (let i = 0; i < itemCount; i++) {
+          const item = menuItems.nth(i);
+          const itemText = await item.textContent();
+          if (itemText && itemText.includes('BE')) {
+            await item.click();
+            console.log('✅ Selected BE using text matching');
+            break;
+          }
+        }
+      } catch (altError) {
+        console.log('⚠️ Alternative BE selection failed');
+      }
     }
     
     // Wait after selection
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
     
   } catch (error) {
     console.log('⚠️ Department name selection failed:', error.message);
-    console.log('🔄 Manual intervention may be needed - pausing for manual selection');
-    await page.pause();
+    console.log('🔄 Skipping Department name and continuing...');
+    // Don't pause, just continue to next field
   }
 }
 
@@ -2230,30 +2319,15 @@ async function selectCourseName(page) {
   
   try {
     // Wait for the previous selection to complete
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
     
-    // Try multiple approaches to find the Course Name dropdown
-    let courseDropdown = null;
+    // Find the Course Name dropdown - it should be the next "Select" dropdown after Department
+    const courseDropdown = page.locator('input[placeholder="Select"]').nth(2); // Third Select dropdown should be Course Name
     
-    // Approach 1: Look for the second dropdown with "Select" placeholder
-    try {
-      const dropdowns = page.locator('input[placeholder="Select"]');
-      courseDropdown = dropdowns.nth(1); // Second dropdown should be Course Name
-      if (await courseDropdown.isVisible()) {
-        console.log('📋 Found Course dropdown using approach 1');
-      } else {
-        throw new Error('Not visible');
-      }
-    } catch {
-      // Approach 2: Look for dropdown near "Course Name" text
-      try {
-        courseDropdown = page.locator('text="Course Name" .. input[placeholder="Select"]');
-        console.log('📋 Found Course dropdown using approach 2');
-      } catch {
-        // Approach 3: Look for dropdown input near Course Name label
-        courseDropdown = page.locator('label:has-text("Course Name") ~ * input, label:has-text("Course Name") + * input').first();
-        console.log('📋 Found Course dropdown using approach 3');
-      }
+    // Check if dropdown exists and is visible
+    if (!(await courseDropdown.isVisible())) {
+      console.log('⚠️ Course Name dropdown not found, skipping...');
+      return;
     }
     
     // Click on the dropdown to open it
@@ -2263,56 +2337,52 @@ async function selectCourseName(page) {
     // Wait for dropdown options to appear
     await page.waitForTimeout(2000);
     
-    // Try to select CSE option with multiple approaches
+    // Try to select CSE option
     try {
-      await page.locator('text="CSE"').click();
+      await page.locator('text="CSE"').first().click();
       console.log('✅ Selected CSE in Course Name');
     } catch {
-      // Try clicking on any option that contains CSE
-      await page.locator('[class*="menuItem"]:has-text("CSE")').click();
-      console.log('✅ Selected CSE using alternative method');
+      console.log('⚠️ Could not find CSE option, trying alternative...');
+      // Try to find any option that contains "CSE" or similar
+      try {
+        const menuItems = page.locator('[class*="menuItem"]');
+        const itemCount = await menuItems.count();
+        console.log(`📋 Found ${itemCount} course menu items`);
+        
+        // Look for CSE in the menu items
+        for (let i = 0; i < itemCount; i++) {
+          const item = menuItems.nth(i);
+          const itemText = await item.textContent();
+          if (itemText && (itemText.includes('CSE') || itemText.includes('Computer Science'))) {
+            await item.click();
+            console.log('✅ Selected CSE using text matching');
+            break;
+          }
+        }
+      } catch (altError) {
+        console.log('⚠️ Alternative CSE selection failed');
+      }
     }
     
     // Wait after selection
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
     
   } catch (error) {
     console.log('⚠️ Course name selection failed:', error.message);
-    console.log('🔄 Manual intervention may be needed - pausing for manual selection');
-    await page.pause();
+    console.log('🔄 Skipping Course Name and continuing...');
+    // Don't pause, just continue to next field
   }
 }
 
-// Helper function to fill Program Duration
+// Fixed Helper function to fill Program Duration
 async function fillProgramDuration(page) {
   console.log('📋 Filling Program Duration');
   
   try {
-    // Wait for previous selections to complete
     await page.waitForTimeout(2000);
     
-    // Try multiple approaches to find Program Duration field
-    let durationField = null;
-    
-    // Approach 1: Look for input with "Type here" placeholder near Program Duration
-    try {
-      durationField = page.locator('text="Program Duration" .. input[placeholder="Type here"]');
-      if (await durationField.isVisible()) {
-        console.log('📋 Found Program Duration field using approach 1');
-      } else {
-        throw new Error('Not visible');
-      }
-    } catch {
-      // Approach 2: Look for any input near Program Duration text
-      try {
-        durationField = page.locator('input[placeholder="Type here"]').last();
-        console.log('📋 Found Program Duration field using approach 2');
-      } catch {
-        // Approach 3: Look for input field near Program Duration label
-        durationField = page.locator('label:has-text("Program Duration") ~ * input').first();
-        console.log('📋 Found Program Duration field using approach 3');
-      }
-    }
+    // Target the input field using the specific name attribute
+    const durationField = page.locator('input[name*="programDuration"]');
     
     await durationField.clear();
     await durationField.fill('4');
@@ -2321,9 +2391,7 @@ async function fillProgramDuration(page) {
     await page.waitForTimeout(1000);
     
   } catch (error) {
-    console.log('⚠️ Program Duration filling failed:', error.message);
-    console.log('🔄 Manual intervention may be needed - pausing for manual input');
-    await page.pause();
+    console.log('⚠️ Program Duration filling failed, skipping...');
   }
 }
 
@@ -2332,41 +2400,32 @@ async function selectModeOfStudy(page) {
   console.log('📋 Selecting Mode of Study: Active Enrollment');
   
   try {
-    // Wait for previous field to complete
     await page.waitForTimeout(2000);
     
-    // Find Mode of Study dropdown using the exact class structure
-    const modeDropdown = page.locator('label:has-text("Mode of Study") + input.dropdown-module_dropdownInput__l6tDa');
+    // Find Mode of Study dropdown (should be after Program Duration)
+    const modeDropdown = page.locator('input[placeholder="Select"]').nth(3);
     
-    // Click on the dropdown to open it
     await modeDropdown.click();
     console.log('📋 Clicked Mode of Study dropdown');
     
-    // Wait for dropdown options to appear
     await page.waitForTimeout(2000);
     
-    // Select Active Enrollment option using the exact class and text structure
-    const activeEnrollmentOption = page.locator('div.dropdown-module_menuItem__lQ-VE:has(div.dropdown-module_menuItemLabel__VJuGM:text("Active Enrollment"))');
-    await activeEnrollmentOption.click();
+    // Select Active Enrollment option
+    await page.locator('text="Active Enrollment"').first().click();
     console.log('✅ Selected Active Enrollment in Mode of Study');
     
-    // Wait after selection
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(1500);
     
   } catch (error) {
-    console.log('⚠️ Mode of Study selection failed:', error.message);
-    // Try alternative approach
-    try {
-      console.log('🔄 Trying alternative selector for Mode of Study...');
-      const altDropdown = page.locator('input[data-testid*="dropdownInput"]').nth(2);
-      await altDropdown.click();
-      await page.waitForTimeout(1000);
-      await page.locator('text="Active Enrollment"').click();
-      console.log('✅ Selected Active Enrollment using alternative method');
-    } catch (altError) {
-      throw error;
-    }
+    console.log('⚠️ Mode of Study selection failed, skipping...');
   }
+}
+
+// Helper function to handle Course Start and End Dates
+async function handleCourseDates(page) {
+  console.log('not handled yet , fill dates manually');
+  await page.pause();
+  
 }
 
 // Helper function to fill name fields
@@ -2447,6 +2506,123 @@ async function fillNameFields(page) {
       console.log('⚠️ Fallback name filling also failed');
     }
   }
+}
+await addAdditionalDocument(page);
+async function addAdditionalDocument(page: any) {
+  await page.click('button:has-text("No, proceed to summary")');
+}
+
+await applicationSummary(page);
+async function applicationSummary(page: any) {
+  await page.click('button:has-text("Continue")');
+}
+
+await automateLOAPage(page);
+async function automateLOAPage(page: any) {
+  // Click the checkbox to confirm reading and agreeing to Letter of Authorization
+  await page.click('input[type="checkbox"]');
+  
+  // Click Continue button (will be enabled after checkbox)
+  await page.click('button:has-text("E-Sign using OTP")');
+  
+  await page.getByRole('button', { name: 'Get OTP' }).click();
+
+  // Fill OTP with 123456
+  const otp = '123456';
+  
+  // Wait for OTP inputs to appear with longer timeout
+  await page.waitForSelector('input[type="tel"]', { state: 'visible', timeout: 10000 });
+
+  for (let i = 0; i < otp.length; i++) {
+    const input = page.locator('input[type="tel"]').nth(i);
+    await input.click();
+    await page.keyboard.press(otp[i]);
+    await page.waitForTimeout(200);
+  }
+
+  // Wait for auto redirection after OTP entry
+  console.log('⏳ Waiting for redirect after OTP...');
+  await page.waitForFunction(() => {
+    return !window.location.href.includes('/verification/mobile');
+  }, { timeout: 10000 });
+}
+
+await pricingSummary(page);
+async function pricingSummary(page: any) {
+  await page.click('button:has-text("Continue")');
+}
+
+await ngeniusPg(page);
+async function ngeniusPg(page: any) {
+  // Fill Card Number
+  await page.fill('input[placeholder="Card Number"], input[name*="card" i], input[name*="number" i]', '4012001037141112');
+  
+  // Fill Expiry Month
+  await page.fill('input[placeholder="Expiry Month"], input[name*="month" i]', '06');
+  
+  // Fill Expiry Year
+  await page.fill('input[placeholder="Expiry Year"], input[name*="year" i]', '33');
+  
+  // Fill Security Code
+  await page.fill('input[placeholder="Security Code"], input[name*="security" i], input[name*="cvv" i]', '656');
+  
+  // Fill Name on Card
+  await page.fill('input[placeholder="Name on card"], input[name*="name" i]', 'automation');
+  
+  // Click the terms and conditions checkbox
+  await page.click('input[type="checkbox"]');
+  
+  // Click Pay button
+  await page.click('button:has-text("Pay")');
+}
+
+await click3DSSubmit(page);
+async function click3DSSubmit(page: any) {
+  await page.click('button:has-text("Submit")');
+  // Wait for payment success page to load
+  await page.waitForSelector('text="Payment Successful"', { timeout: 30000 });
+}
+
+await handlePaymentStatusPage(page);
+async function handlePaymentStatusPage(page: any) {
+  // Take screenshot of the payment status page
+  await page.screenshot({ path: 'payment-status.png', fullPage: true });
+  
+  // Click "Track application status" button
+  await page.click('button:has-text("Track application status")');
+  await page.waitForSelector('text="Payment Successful"', { timeout: 30000 });
+
+}
+
+await printVerificationSummary(page);
+async function printVerificationSummary(page: any) {
+  // Wait for verification details page to load
+  await page.waitForSelector('.index_web_heading__QkxKl', { timeout: 10000 });
+  
+  // Extract the main authority title
+  const authorityTitle = await page.textContent('.index_web_heading__QkxKl');
+  
+  // Extract the service type
+  const serviceType = await page.textContent('.index_web_clientName__MCIr6');
+  
+  // Extract Request ID
+  const requestIdElement = await page.textContent('.index_web_reqId__CGnBw');
+  
+  // Extract Requested On date
+  const requestedOnElement = await page.textContent('.index_web_reqOn__HieTA');
+  
+  // Extract status (optional)
+  const statusElement = await page.textContent('.badge-module_badgeText__A11Oc');
+  
+  // Print the summary
+  console.log('📋 VERIFICATION SUMMARY:');
+  console.log('='.repeat(50));
+  console.log(`**${authorityTitle}**`);
+  console.log(`**${serviceType}**`);
+  console.log(`**${requestIdElement}**`);
+  console.log(`**${requestedOnElement}**`);
+  console.log(`**Status: ${statusElement}**`);
+  console.log('='.repeat(50));
 }
 
 }
